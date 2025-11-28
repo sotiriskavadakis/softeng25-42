@@ -176,22 +176,26 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 
 **Main flow**
 
-![Σχήμα 3.1.2-1 - Use Case 2 Main Flow](plantuml/diagrams/UC2-main.png)
-
+<p align="center">
+  <img src="plantuml/diagrams/UC2-main.png" alt="Σχήμα 3.1.2-1 - Use Case 2 Main Flow"/>
+</p>
 
 **Alternate flow 1: Χειροκίνητη Ακύρωση (User Cancellation)**
 
 Ο χρήστης αποφασίζει να ακυρώσει την κράτηση πριν φτάσει στον φορτιστή.
 
-![Σχήμα 3.1.2-2 - Use Case 2 Alt Flow 1](plantuml/diagrams/UC2-alt1.png)
+<p align="center">
+  <img src="plantuml/diagrams/UC2-alt1.png" alt="Σχήμα 3.1.2-2 - Use Case 2 Alt Flow 1"/>
+</p>
 
 
 **Alternate flow 2: Λήξη Χρόνου / No-Show (Timer Expiry)**
 
 Ο χρήστης δεν εμφανίζεται εντός του καθορισμένου χρονικού ορίου.
 
-![Σχήμα 3.1.2-3 - Use Case 2 Alt Flow 2](plantuml/diagrams/UC2-alt2.png)
-
+<p align="center">
+  <img src="plantuml/diagrams/UC2-alt2.png" alt="Σχήμα 3.1.2-3 - Use Case 2 Alt Flow 2"/>
+</p>
 
 ##### 3.1.2.6 Output data and postconditions
 **Output data:**
@@ -269,10 +273,12 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 | **Πολιτική Τιμολόγησης (Pricing)** | Τιμή ανά kWh, χρονική ισχύς |
 
 ---
-\ 
+
 **ER Diagram**
 
-![Σχήμα 3.4.2 — ER Diagram του Συστήματος](plantuml/diagrams/ER.png)
+<p align="center">
+  <img src="plantuml/diagrams/ER.png" alt="Σχήμα 3.4.2 — ER Diagram του Συστήματος" width="900" height="600" />
+</p>
 
 
 
