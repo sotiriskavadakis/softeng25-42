@@ -1,0 +1,151 @@
+@startuml
+' VISUAL STYLING
+!theme plain
+hide circle
+skinparam linetype ortho
+
+' ENUMS
+enum ConnectorStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  FAULTED
+  OFFLINE
+}
+
+' --- GEOGRAPHY ---
+entity "Region" as region {
+  name : string <<PK>>
+}
+
+entity "County" as county {
+  name : string <<PK>>
+  --
+  region_name : string <<FK>>
+}
+
+' --- INFRASTRUCTURE ---
+
+entity "Location" as location {
+  ' Represents the parking lot / site
+  location_id : serial <<PK>>
+  --
+  county_name : string <<FK>>
+  access: int
+  address : string
+  available_station_count : int | null {nullable}
+  coming_soon: boolean
+  connector_types : array
+  icon : string
+  icon_type : string
+  id: int
+  in_use_station_count: int | null {nullable}
+  latitude : double
+  longitude : double
+  is_active : boolean
+  map_card_logo_url : string
+  name : string
+  score : float
+  station_count : int
+  thumbnail_url : string
+  under_repair : boolean
+  url : string
+}
+
+entity "Station" as station {
+  ' Represents the physical EVSE box (e.g. The AC post or the DC cabinet)
+  station_id : serial <<PK>>
+  --
+  location_id : int <<FK>>
+  network_id : int
+  physical_id : string
+}
+
+entity "ConnectorType" as conn_type {
+  ' LOOKUP TABLE: e.g. CCS2, Type 2, CHAdeMO
+  type_id : serial <<PK>>
+  --
+  name : string
+  max_supported_power : double
+  icon_url : string
+}
+
+entity "Connector" as connector {
+  ' The specific plug/outlet
+  connector_id : serial <<PK>>
+  --
+  station_id : int <<FK>>
+  type_id : int <<FK>>
+  status : ConnectorStatus
+  max_power_kw : double
+  tariff_per_kwh : float
+}
+
+' --- USERS & FINANCE ---
+
+entity "User" as usr {
+  usr_id : serial <<PK>>
+  --
+  email : string
+  username : string
+  password_hash : string
+  first_name : string
+  last_name : string
+}
+
+entity "PaymentMethod" as pay_method {
+  method_name : string <<PK>>
+}
+
+entity "SavedCard" as card {
+  card_id : serial <<PK>>
+  --
+  usr_id : int <<FK>>
+  method_name : string <<FK>>
+  last_4_digits : string
+  token : string
+}
+
+' --- TRANSACTIONS ---
+
+entity "Reservation" as reservation {
+  reservation_id : serial <<PK>>
+  --
+  usr_id : int <<FK>>
+  connector_id : int <<FK>>
+  start_time : timestamp
+  duration_minutes : int
+}
+
+entity "ChargingSession" as session {
+  session_id : serial <<PK>>
+  --
+  usr_id : int <<FK>>
+  connector_id : int <<FK>>
+  card_id : int <<FK>>
+  start_time : timestamp
+  end_time : timestamp
+  total_kwh : double
+  total_cost : float
+}
+
+' --- RELATIONSHIPS ---
+
+region ||..o{ county
+county ||..o{ location
+
+location ||..o{ station
+station ||..o{ connector
+
+conn_type ||..o{ connector
+
+usr ||..o{ card
+pay_method ||..o{ card
+
+usr ||..o{ reservation
+connector ||..o{ reservation
+
+usr ||..o{ session
+connector ||..o{ session
+card ||..o{ session
+@enduml

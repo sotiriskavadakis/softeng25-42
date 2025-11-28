@@ -1,0 +1,14 @@
+@startuml
+start
+:Reservation timer expires;
+if (Charging started?) then (No)
+  :Cancel Reservation;
+  :Change charger status to "Available";
+  :Charge no-show fee (optional);
+  :Release remaining pre-authorized amount;
+  :Send "Reservation expired" notification;
+else (Yes)
+  :Continue charging flow;
+endif
+stop
+@enduml

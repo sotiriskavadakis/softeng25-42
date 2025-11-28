@@ -1,0 +1,9 @@
+@startuml
+start
+:User clicks "Cancel Reservation";
+:System releases charger
+(Status = Available);
+:Release payment pre-authorization;
+:Send cancellation confirmation;
+stop
+@enduml

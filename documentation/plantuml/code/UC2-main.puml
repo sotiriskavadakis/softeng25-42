@@ -1,0 +1,22 @@
+@startuml
+start
+:User clicks "Reserve" button;
+:System checks charger availability;
+if (Charger Available?) then (yes)
+  :Request payment pre-authorization;
+  if (Payment Successful?) then (yes)
+    :Lock charger (Status=Reserved);
+    :Generate unique Reservation ID;
+    :Start reservation timer;
+    :Send confirmation notification;
+    :Show reservation confirmation;
+    stop
+  else (no)
+    :Show payment error message;
+    stop
+  endif
+else (no)
+  :Show "Charger not available" error;
+  stop
+endif
+@enduml
