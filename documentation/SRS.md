@@ -285,7 +285,6 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 - **Μέθοδος Πληρωμής**: Επιλεγμένος τρόπος πληρωμής από το προφίλ χρήστη
 - **Καταχωρημένο Όχημα Χρήστη**: Τύπος και μοντέλο οχήματος για στατιστικούς λόγους (προεραιτικό)
 
-
 ##### 3.1.2.5 Expected behaviour
 
 ###### Main flow
@@ -298,7 +297,9 @@ if (Charger Available?) then (yes)
   :Request payment pre-authorization;
   if (Payment Successful?) then (yes)
     :Lock charger (Status=Reserved);
+    :Generate unique Reservation ID;
     :Start reservation timer;
+    :Send confirmation notification;
     :Show reservation confirmation;
     stop
   else (no)
@@ -319,12 +320,11 @@ endif
 ```plantuml
 @startuml
 start
-:Ο Χρήστης πατάει "Ακύρωση Κράτησης";
-:Το Σύστημα αποδεσμεύει τον φορτιστή
+:User clicks "Cancel Reservation";
+:System releases charger
 (Status = Available);
-:Ακύρωση της προ-δέσμευσης ποσού
-(Release Pre-auth);
-:Αποστολή επιβεβαίωσης ακύρωσης;
+:Release payment pre-authorization;
+:Send cancellation confirmation;
 stop
 @enduml
 ```
@@ -336,26 +336,40 @@ stop
 ```plantuml
 @startuml
 start
-:Το χρονόμετρο κράτησης λήγει;
-if (Η φόρτιση ξεκίνησε;) then (Όχι)
-  :Ακύρωση της Κράτησης;
-  :Αλλαγή κατάστασης Φορτιστή σε "Available";
-  :Χρέωση τέλους "No-Show" (προαιρετικά);
-  :Αποδέσμευση του υπόλοιπου ποσού;
-  :Αποστολή ειδοποίησης "Η κράτηση έληξε";
-else (Ναι)
-  :Συνέχεια ροής Φόρτισης;
+:Reservation timer expires;
+if (Charging started?) then (No)
+  :Cancel Reservation;
+  :Change charger status to "Available";
+  :Charge no-show fee (optional);
+  :Release remaining pre-authorized amount;
+  :Send "Reservation expired" notification;
+else (Yes)
+  :Continue charging flow;
 endif
 stop
 @enduml
 ```
 
 ##### 3.1.2.6 Output data and postconditions
-- Δημιουργία μοναδικού Αναγνωριστικού Κράτησης (Reservation ID)
-- Αλλαγή κατάστασης φορτιστή σε "Κρατημένος"
-- Προεξόφληση ποσού μέσω Payment Gateway
-- Ενεργοποίηση χρονόμετρου κράτησης
-- Αποστολή email/sms επιβεβαίωσης κράτησης
+**Output data:**
+- Μοναδικό Αναγνωριστικό Κράτησης (Reservation ID)
+- Επιβεβαίωση κράτησης με λεπτομέρειες (χρόνος, κόστος προ-δέσμευσης)
+- Ειδοποίηση μέσω email/SMS/push notification
+
+**Postconditions:**
+- Σε επιτυχή ολοκλήρωση:
+  - Ο φορτιστής έχει αλλάξει κατάσταση σε "Κρατημένος"
+  - Έχει γίνει προεξόφληση ποσού μέσω Payment Gateway
+  - Έχει ενεργοποιηθεί χρονόμετρο κράτησης
+  - Ο χρήστης έχει λάβει επιβεβαίωση κράτησης
+- Σε αποτυχία:
+  - Ο φορτιστής παραμένει διαθέσιμος
+  - Δεν έχει γίνει χρέωση
+
+##### 3.1.2.7 Notes
+- Η διάρκεια κράτησης είναι περιορισμένη (15-60 λεπτά) για να αποφευχθεί η μακροχρόνια δέσμευση φορτιστών
+- Σε περίπτωση no-show, το τέλος ακύρωσης είναι προαιρετικό και καθορίζεται από την πολιτική του παρόχου
+- Ο χρήστης μπορεί να έχει μόνο μία ενεργή κράτηση τη φορά
 
 ### 3.2 Λειτουργικές Απαιτήσεις
 
