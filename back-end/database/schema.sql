@@ -1,3 +1,5 @@
+DROP
+
 -- Περιφέρεια
 CREATE TABLE IF NOT EXISTS region (
     name VARCHAR(50) PRIMARY KEY,
