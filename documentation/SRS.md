@@ -265,19 +265,20 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 
 Το σύστημα πρέπει να διατηρεί και να συσχετίζει τις εξής κύριες οντότητες:
 
-| Οντότητα | Χαρακτηριστικά |
-|----------|----------------|
-| **Χρήστης (User)** | Στοιχεία ταυτοποίησης, υπόλοιπο, προτιμήσεις |
-| **Φορτιστής (Charger)** | ID, τοποθεσία, κατάσταση λειτουργίας, τύπος βύσματος |
-| **Συνεδρία (Session)** | ID, χρόνος έναρξης/λήξης, συνολικές kWh, κόστος |
-| **Πολιτική Τιμολόγησης (Pricing)** | Τιμή ανά kWh, χρονική ισχύς |
+| Οντότητα | Χαρακτηριστικά (Βάσει ER Diagram) |
+| :--- | :--- |
+| **Χρήστης (User)** | `usr_id` (PK), `username`, `email`, `password_hash`, `first_name`, `last_name`, `SavedCard` (μέσω σχέσης) |
+| **Τοποθεσία (Location)** | `location_id` (PK), `address`, `latitude`, `longitude`, `access` (Public/Private), `is_active` (status λειτουργίας χώρου), `county_name` |
+| **Φορτιστής (Charger)** | `station_id`, `physical_id` (QR/Serial), `network_id`, `connector_id`, `status` (Available/Occupied), `max_power_kw`, `type_id` (Τύπος βύσματος) |
+| **Συνεδρία (Session)** | `session_id` (PK), `start_time`, `end_time`, `total_kwh`, `total_cost`, `card_id` |
+| **Πολιτική Τιμολόγησης (Pricing)** | `tariff_per_kwh` (τρέχουσα τιμή στο Connector), `total_cost` (τελική χρέωση αποθηκευμένη στη Συνεδρία) |
 
 ---
 
 **ER Diagram**
 
 <p align="center">
-  <img src="plantuml/diagrams/ER.png" alt="Σχήμα 3.4.2 — ER Diagram του Συστήματος" width="600" height="900" />
+  <img src="plantuml/diagrams/ER.png" alt="Σχήμα 3.4.2 — ER Diagram του Συστήματος" width="700" height="900" />
 </p>
 
 

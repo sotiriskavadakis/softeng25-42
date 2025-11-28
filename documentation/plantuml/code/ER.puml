@@ -5,7 +5,7 @@ hide circle
 skinparam linetype ortho
 
 ' ENUMS
-enum ConnectorStatus {
+enum chargerStatus {
   AVAILABLE
   OCCUPIED
   RESERVED
@@ -35,7 +35,7 @@ entity "Location" as location {
   address : string
   available_station_count : int | null {nullable}
   coming_soon: boolean
-  connector_types : array
+  charger_types : array
   icon : string
   icon_type : string
   id: int
@@ -61,7 +61,7 @@ entity "Station" as station {
   physical_id : string
 }
 
-entity "ConnectorType" as conn_type {
+entity "ChargerType" as charger_type {
   ' LOOKUP TABLE: e.g. CCS2, Type 2, CHAdeMO
   type_id : serial <<PK>>
   --
@@ -70,13 +70,13 @@ entity "ConnectorType" as conn_type {
   icon_url : string
 }
 
-entity "Connector" as connector {
+entity "Charger" as charger {
   ' The specific plug/outlet
-  connector_id : serial <<PK>>
+  charger_id : serial <<PK>>
   --
   station_id : int <<FK>>
   type_id : int <<FK>>
-  status : ConnectorStatus
+  status : chargerStatus
   max_power_kw : double
   tariff_per_kwh : float
 }
@@ -112,7 +112,7 @@ entity "Reservation" as reservation {
   reservation_id : serial <<PK>>
   --
   usr_id : int <<FK>>
-  connector_id : int <<FK>>
+  charger_id : int <<FK>>
   start_time : timestamp
   duration_minutes : int
 }
@@ -121,7 +121,7 @@ entity "ChargingSession" as session {
   session_id : serial <<PK>>
   --
   usr_id : int <<FK>>
-  connector_id : int <<FK>>
+  charger_id : int <<FK>>
   card_id : int <<FK>>
   start_time : timestamp
   end_time : timestamp
@@ -135,17 +135,17 @@ region ||..o{ county
 county ||..o{ location
 
 location ||..o{ station
-station ||..o{ connector
+station ||..o{ charger
 
-conn_type ||..o{ connector
+charger_type ||..o{ charger
 
 usr ||..o{ card
 pay_method ||..o{ card
 
 usr ||..o{ reservation
-connector ||..o{ reservation
+charger ||..o{ reservation
 
 usr ||..o{ session
-connector ||..o{ session
+charger ||..o{ session
 card ||..o{ session
 @enduml
