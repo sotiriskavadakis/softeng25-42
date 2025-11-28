@@ -36,7 +36,123 @@
 - PCI-DSS: Πρότυπα ασφαλείας για προστασία προσωπικών δεδομένων και atomic τραπεζικές συναλλαγές (ACID).
 - OAuth : Για την ασφαλή ταυτοποίηση του χρήστη κατά την είσοδό του στην εφαρμογή.
 
+**Component Diagram**
+```
+@startuml
+skinparam componentStyle uml2
+skinparam linetype ortho
 
+skinparam componentBackgroundColor #87CEFA
+skinparam componentBorderColor #005a9c
+skinparam componentBorderThickness 1.5
+skinparam arrowColor #333333
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #CCCCCC
+
+' --- Actors ---
+actor "User/Guest/Admin" as User
+
+' --- Components (Imitating the Layout) ---
+
+' 1. Database (Left Side)
+component "Database" as DB {
+    port "In" as P_DB_In
+    port "Out" as P_DB_Out
+}
+
+' 2. Search & Filters (Top Middle)
+component "Search Chargers" as Search {
+    port "Filters" as P_Search_Filter
+    port "Results" as P_Search_Res
+}
+
+component "Input & Filters" as Input {
+    port "Criteria" as P_Input_Crit
+}
+
+' 3. Core Logic (Center)
+component "Reservation\nManager" as Reserve {
+    port "Book" as P_Res_Book
+}
+
+component "Session\nManager" as Session {
+    port "Ctrl" as P_Sess_Ctrl
+}
+
+component "Billing\nService" as Billing
+
+' 4. Authentication (Bottom Middle)
+component "Sign In / Up" as Auth {
+    port "Login" as P_Auth_Log
+    port "Register" as P_Auth_Reg
+}
+
+' 5. User Page / Dashboard (Right Side)
+component "User/Admin\nDashboard" as Dashboard {
+    port "View" as P_Dash_View
+}
+
+component "Statistics" as Stats
+
+' --- External Systems (To mimic the Recommendation/External parts) ---
+component "External\nAPIs" as Ext {
+    port "Maps" as P_Maps
+    port "Bank" as P_Bank
+    port "OCPP" as P_OCPP
+}
+
+' --- Connections (The Spaghetti Logic!) ---
+
+' User Interaction
+User --> P_Input_Crit : Search Query
+User --> P_Auth_Log : Credentials
+User --> P_Dash_View : View Profile
+
+' Search Flow
+Input -left-> Search : Apply Filters
+Search -down-> DB : Query Data
+DB -up-> Search : Return Data
+Search -right-> Dashboard : Display Results
+
+' Auth Flow
+Auth -left-> DB : Validate User
+Auth -right-> Dashboard : Grant Access
+
+' Reservation Flow
+Dashboard --> Reserve : Request Booking
+Reserve --> Billing : Pre-auth
+Billing --> Ext : Payment Gateway
+Reserve -left-> DB : Store Reservation
+
+' Charging Flow
+Session --> Ext : OCPP Commands
+Ext --> Session : Meter Values
+Session --> Billing : Cost Calculation
+Session -left-> DB : Log History
+
+' Stats Flow
+Stats -up-> DB : Fetch Data
+Stats -right-> Dashboard : Show Charts
+
+' --- Notes (Like the screenshot) ---
+note top of Input
+  Filter component contains
+  input for search based on:
+  - Plug Type
+  - Power (kW)
+  - Availability
+end note
+
+note left of DB
+  Central Storage for:
+  - Users
+  - Chargers
+  - Sessions
+  - Reservations
+end note
+
+@enduml
+```
 #### 1.2.2 Διεπαφές Χρήστη
 
 **FIXME : Οπωσδήποτε οθόνες και ενδεχομένως κάποιο chart που να δείχνει τη μετάβαση από τη μία οθόνη στην άλλη "    - Flow between screens, etc."**
