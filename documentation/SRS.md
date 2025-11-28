@@ -277,7 +277,7 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 **ER Diagram**
 
 <p align="center">
-  <img src="plantuml/diagrams/ER.png" alt="Σχήμα 3.4.2 — ER Diagram του Συστήματος" width="900" height="600" />
+  <img src="plantuml/diagrams/ER.png" alt="Σχήμα 3.4.2 — ER Diagram του Συστήματος" width="600" height="900" />
 </p>
 
 
