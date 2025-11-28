@@ -37,6 +37,7 @@
 - OAuth : Για την ασφαλή ταυτοποίηση του χρήστη κατά την είσοδό του στην εφαρμογή.
 
 **Component Diagram**
+
 ![Σχήμα 1.2.1 - Component Diagram](plantuml/diagrams/Component.png)
 
 #### 1.2.2 Διεπαφές Χρήστη
@@ -174,6 +175,7 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 ##### 3.1.2.5 Expected behaviour
 
 **Main flow**
+
 ![Σχήμα 3.1.2-1 - Use Case 2 Main Flow](plantuml/diagrams/UC2-main.png)
 
 
@@ -267,7 +269,7 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 | **Πολιτική Τιμολόγησης (Pricing)** | Τιμή ανά kWh, χρονική ισχύς |
 
 ---
-\
+\ 
 **ER Diagram**
 
 ![Σχήμα 3.4.2 — ER Diagram του Συστήματος](plantuml/diagrams/ER.png)
