@@ -1,0 +1,74 @@
+@startuml
+title Activity Diagram – Admin View Statistics (Optimized)
+
+skinparam conditionStyle insideDiamond
+
+start
+
+:Admin logs in;
+:Admin opens "Statistics Dashboard";
+
+' --- INITIAL LOAD ---
+:System loads "System-wide" statistics (Default View);
+note right
+  Defaults: Last 30 days, 
+  All Areas, All Stations
+end note
+
+:System displays summary metrics and charts;
+
+' --- MAIN INTERACTION LOOP ---
+repeat
+
+    ' --- FILTER FLOW ---
+    if (Admin needs to filter?) then (Yes)
+        :Admin selects Date Range / Station / Area;
+        :System reloads data based on new context;
+    else (No)
+    endif
+
+    ' --- VIEW SWITCHING ---
+    :Admin selects/switches View Tab;
+
+    'Using SPLIT to show these are parallel options
+    split
+        -> **System-wide**;
+        :System shows Overall Metrics:
+        - Total Sessions & Revenue
+        - Total kWh
+        - Utilization Heatmap;
+    
+    split again
+        -> **Per Area**;
+        :System shows Area Analytics:
+        - Revenue per Area
+        - Most Popular Areas
+        - Regional Peak Hours;
+        
+    split again
+        -> **Per Station**;
+        :System shows Station Analytics:
+        - Utilization Rate %
+        - Queue/Wait times
+        - Connector availability;
+        
+    split again
+        -> **Per Charger**;
+        :System shows Hardware Analytics:
+        - **Fault/Error Logs**
+        - Avg. charging speed (kW)
+        - Session duration;
+    end split
+
+    ' --- EXPORT FLOW ---
+    if (Admin clicks Export?) then (Yes)
+        :System generates PDF/CSV report
+        based on current view;
+        :Admin downloads file;
+    else (No)
+    endif
+
+repeat while (Admin continues analysis?) is (Yes)
+
+stop
+@enduml
