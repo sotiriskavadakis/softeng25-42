@@ -132,12 +132,6 @@
 
 #### 3.1.1.5 Expected behaviour
 
-**Use Case Diagram**
-
-<p align="center">
-  <img src="plantuml/diagrams/uc1_usecase.png" alt="Σχήμα 3.1.1-1 - Use Case 1 Use Case Diagram"/>
-</p>
-
 **Main flow**
 
 <p align="center">
