@@ -1,0 +1,58 @@
+@startuml
+top to bottom direction
+
+' Actors
+actor "Customer\n(EV Driver)" as Customer
+actor "Maps &\nNavigation Service" as MapsService
+actor "Device\nLocation Service" as LocationService
+
+' System boundary
+rectangle "EVCharge Manager" as EVCS {
+
+  ' High level goal (top)
+  usecase "Find and\nNavigate" as UC_FindAndNavigate
+
+  ' Main sub use cases
+  usecase "Find\nCharger" as UC_FindCharger
+  usecase "Navigate to\nCharger" as UC_NavigateToCharger
+
+  ' Internal steps for Find Charger
+  usecase "Display Map\n& Filters" as UC_DisplayMapFilters
+  usecase "Request & Use\nLocation" as UC_RequestUseLocation
+  usecase "Manage Filters\n& Update Map" as UC_ManageFiltersUpdateMap
+  usecase "Select Charger\n& View Details" as UC_SelectChargerViewDetails
+
+  ' Internal steps for Navigate to Charger
+  usecase "Start Navigation\nto Charger" as UC_StartNavigationToCharger
+
+  ' Optional / alternative flows
+  usecase "Use Saved Charger\nfrom Session" as UC_UseSavedChargerFromSession
+  usecase "Handle\n\"No Chargers Found\"" as UC_HandleNoChargersFound
+}
+
+' Primary actor
+Customer -- UC_FindAndNavigate
+
+' Main decomposition
+UC_FindAndNavigate ..> UC_FindCharger         : «include»
+UC_FindAndNavigate ..> UC_NavigateToCharger   : «include»
+
+' Find Charger structure
+UC_FindCharger ..> UC_DisplayMapFilters        : «include»
+UC_FindCharger ..> UC_RequestUseLocation       : «include»
+UC_FindCharger ..> UC_ManageFiltersUpdateMap   : «include»
+UC_FindCharger ..> UC_SelectChargerViewDetails : «include»
+
+' Navigate to Charger structure
+UC_NavigateToCharger ..> UC_StartNavigationToCharger : «include»
+
+' Extensions
+UC_DisplayMapFilters ..> UC_UseSavedChargerFromSession : «extend»\n[charger saved in session]
+UC_ManageFiltersUpdateMap ..> UC_HandleNoChargersFound  : «extend»\n[no chargers match filters]
+
+' External support actors
+MapsService -- UC_NavigateToCharger
+MapsService -- UC_ManageFiltersUpdateMap
+LocationService -- UC_RequestUseLocation
+
+@enduml
