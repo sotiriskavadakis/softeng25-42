@@ -336,7 +336,7 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 - Η συσκευή έχει ενεργή σύνδεση στο διαδίκτυο
 
 ##### 3.1.4.3 Execution environment
-Web Admin Portal (βελτιστοποιημένο για Desktop ή Tablet) με δυνατότητες οπτικοποίησης δεδομένων (Data Visualization / Charts)
+Web Admin Portal (βελτιστοποιημένο για Desktop ή Smartphone) με δυνατότητες οπτικοποίησης δεδομένων (Data Visualization / Charts)
 
 ##### 3.1.4.4 Input data
 - **Χρονικό Εύρος (Date Range)**: Η περίοδος αναφοράς (π.χ., Τελευταίες 30 μέρες, Προσαρμοσμένο Εύρος)
