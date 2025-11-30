@@ -2,37 +2,36 @@
 
 start
 
-:Maps & Navigation Service\nεμφανίζει τον χάρτη;
-:Το σύστημα εμφανίζει\nτα φίλτρα αναζήτησης;
+:Maps & Navigation Service\nshows the map;
+:The system displays\nthe search filters;
 
-:Το σύστημα ζητάει πρόσβαση\nστην τοποθεσία του χρήστη;
-:Ο Customer (EV Driver) αποδέχεται\nή απορρίπτει την πρόσβαση;
+:The system requests access\nto the user's location;
+:The Customer (EV Driver) accepts\nor denies the access request;
 
-if (Ο Customer (EV Driver)επέτρεψε\n την πρόσβαση στην τοποθεσία;) then (ναι)
-  :Το Device Location Service\nβρίσκει την τοποθεσία του χρήστη;
-  :Το Maps & Navigation Service\nτοποθετεί το κέντρο του χάρτη\nστην τοποθεσία του χρήστη;
-else (όχι)
-  :Το Maps & Navigation Service\nτοποθετεί το κέντρο του χάρτη\nστην προεπιλεγμένη τοποθεσία;
+if (Did the Customer (EV Driver)\nallow location access?) then (yes)
+  :The Device Location Service\nretrieves the user's location;
+  :The Maps & Navigation Service\ncenters the map on\nthe user's location;
+else (no)
+  :The Maps & Navigation Service\ncenters the map on\nthe default location;
 endif
 
 
+repeat
+:The Customer (EV Driver)\nmodifies the search filters;
+:The system updates accordingly\nthe chargers displayed\non the map;
+
+repeat while (Has the Customer (EV Driver)\nfinished the search?) is (no) not (yes)
+
 
 repeat
-:Ο Customer (EV Driver)\nτροποποιεί τα φίλτρα αναζήτησης;
-:Το σύστημα ενημερώνει κατάλληλα\nτους φορτιστές  που εμφανίζονται\nστον χάρτη;
+:The Customer (EV Driver)\nselects a charger;
+:The system displays\nthe characteristics of the\nselected charger;
 
- repeat while (Ο Customer (EV Driver)\nολοκλήρωσε την αναζήτηση;) is (όχι) not (ναι)
-
-repeat
-:Customer (EV Driver)\nεπιλέγει φορτιστή;
-:Το σύστημα εμφανίζει\nτα χαρακτηριστικά του\nεπιλεγμένου φορτιστή;
-
-repeat while (Ο Customer (EV Driver)\nεπιβεβαιώνει την επιλογή του;) is (όχι) not (ναι)
-  :Το σύστημα αποθηκεύει\nτον επιλεγμένο φορτιστή\nστη συνεδρία;
-  :Ο Customer (EV Driver)\nεπιλέγει να ξεκινήσει\nτην πλοήγηση;
-  :Το Maps & Navigation Service\nδημιουργεί τον σύνδεσμο πλοήγησης;
-  :Το σύστημα ανακατευθύνει\nτον χρήστη στην\nπλατφόρμα πλοήγησης;
+repeat while (Does the Customer (EV Driver)\nconfirm their selection?) is (no) not (yes)
+  :The system stores\nthe selected charger\nin the session;
+  :The Customer (EV Driver)\nchooses to start\nnavigation;
+  :The Maps & Navigation Service\ncreates the navigation link;
+  :The system redirects\nthe user to the\nnavigation platform;
   stop
-
 
 @enduml

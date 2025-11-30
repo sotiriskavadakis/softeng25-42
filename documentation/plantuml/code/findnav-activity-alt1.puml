@@ -2,27 +2,27 @@
 
 start
 note left
-Είσοδος από κύριο σενάριο
-μετά το βήμα
+Entry from main scenario
+after the step
 «Maps & Navigation Service
-εμφανίζει τον χάρτη»
+shows the map»
 end note
 
 
-:Το σύστημα ελέγχει αν υπάρχει\nεπιλεγμένος φορτιστής\nστη συνεδρία;
+:The system checks whether there is\na selected charger\nin the session;
 
-if (Υπάρχει επιλεγμένος\nφορτιστής στη συνεδρία;) then (ναι)
-  :Το Maps & Navigation Service\nτοποθετεί το κέντρο του χάρτη\nστην τοποθεσία του φορτιστή;
-  :Επιστροφή στο κύριο σενάριο;
+if (Is there a selected\ncharger in the session?) then (yes)
+  :The Maps & Navigation Service\ncenters the map\non the charger's location;
+  :Return to the main scenario;
   note left
-    «Ο Customer τροποποιεί
-    τα φίλτρα αναζήτησης»
+    «The Customer modifies
+    the search filters»
   end note
-else (όχι)
-  :Επιστροφή στο κύριο σενάριο;
+else (no)
+  :Return to the main scenario;
   note right
-    «Το σύστημα ζητάει πρόσβαση
-    στην τοποθεσία του χρήστη»
+    «The system requests access
+    to the user's location»
   end note
 endif
 
