@@ -26,10 +26,6 @@ skinparam port {
   BorderColor #FFA000
 }
 
-' Increase spacing for orthogonal lines
-skinparam nodesep 60
-skinparam ranksep 60
-
 '--- External Actors ---
 interface "User/Admin" as ExtUser
 interface "External\nPayment API" as ExtPayment
@@ -47,52 +43,59 @@ component "EV Charging System" <<subsystem>> {
 
     '--- Internal Grouping ---
     package "Presentation Layer" {
-        component "Dashboard UI" as Dash
+        component "Dashboard UI" as Dash <<Component>>
     }
 
     package "Core Business Logic" {
-        component "Auth Service" as Auth
-        component "Search Service" as Search
-        component "Reservation\nManager" as Res
-        component "Session\nManager" as Session
-        component "Billing Service" as Billing
+        component "Auth Service" as Auth <<Component>>
+        component "Search Service" as Search <<Component>>
+        component "Reservation\nManager" as Res <<Component>>
+        component "Session\nManager" as Session <<Component>>
+        component "Billing Service" as Billing <<Component>>
+        component "Display Statistics" as Stats <<Component>>
     }
 
     package "Data Layer" {
-        component "Database\nAccess" as DB
+        component "Database\nAccess" as DB <<Component>>
     }
 
     '--- Internal Interfaces (Wiring) ---
     
-    ' 1. Auth (Now connects to SSO Port)
-    interface "IAuth"
+    ' 1. Auth 
+    interface "Auth Interface" as IAuth
     Auth -left- IAuth
     Dash --( IAuth
     Auth --(0- P_Auth : verifies token
 
     ' 2. Search
-    interface "ISearch"
+    interface "Search Interface" as ISearch
     Search -left- ISearch
     Dash --( ISearch
 
     ' 3. Reservation
-    interface "IBooking"
+    interface "Booking Interface" as IBooking
     Res -left- IBooking
     Dash --( IBooking
 
     ' 4. Billing
-    interface "IBilling"
+    interface "Billing Interface" as IBilling
     Billing -up- IBilling
     Res --( IBilling
     Session --( IBilling
 
-    ' 5. Database (Shared)
-    interface "IData"
+    ' 5. Statistics (New)
+    interface "Statistics Interface" as IStats
+    Stats -left- IStats
+    Dash --( IStats
+
+    ' 6. Database (Shared)
+    interface "Data Interface" as IData
     DB -left- IData
     Auth --( IData
     Search --( IData
     Res --( IData
     Session --( IData
+    Stats --( IData
 
     '--- Port Connections ---
     P_UI -right- Dash
@@ -101,11 +104,12 @@ component "EV Charging System" <<subsystem>> {
     Session --(0- P_HW
     Billing --(0- P_Bank
 
-    '--- Layout Helpers ---
+    '--- Layout Helpers (Hidden lines to stack logic components) ---
     Auth -[hidden]down- Search
     Search -[hidden]down- Res
     Res -[hidden]down- Session
     Session -[hidden]down- Billing
+    Billing -[hidden]down- Stats
 }
 
 '--- External Connections ---
