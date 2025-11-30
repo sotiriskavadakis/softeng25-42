@@ -1,0 +1,167 @@
+@startuml
+' VISUAL STYLING
+!theme plain
+hide circle
+skinparam linetype ortho
+
+' --- ENUMS ---
+enum ChargerStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  FAULTED
+  OFFLINE
+}
+
+' --- GEOGRAPHY ---
+class Region {
+  - name : String
+  + getCounties() : List<County>
+}
+
+class County {
+  - name : String
+  + getRegion() : Region
+  + getLocations() : List<Location>
+}
+
+' --- INFRASTRUCTURE ---
+class Location {
+  - locationId : Integer
+  - access : Integer
+  - address : String
+  - availableStationCount : Integer
+  - chargerTypes : List<String>
+  - isActive : Boolean
+  - name : String
+  - score : Float
+  
+  ' Navigation Methods
+  + getStations() : List<Station>
+  + getCounty() : County
+  ' Logic Methods
+  + isOpen() : Boolean
+  + hasAvailableChargers() : Boolean
+}
+
+class Station {
+  - stationId : Integer
+  - networkId : Integer
+  - physicalId : String
+  
+  ' Navigation
+  + getLocation() : Location
+  + getChargers() : List<Charger>
+}
+
+class ChargerType {
+  - typeId : Integer
+  - name : String
+  - maxSupportedPower : Double
+  
+  + getChargers() : List<Charger>
+}
+
+class Charger {
+  - chargerId : Integer
+  - status : ChargerStatus
+  - maxPowerKw : Double
+  - tariffPerKwh : Float
+  
+  ' Navigation
+  + getStation() : Station
+  + getChargerType() : ChargerType
+  + getCurrentSession() : ChargingSession
+  ' Logic
+  + isAvailable() : Boolean
+}
+
+' --- USERS & FINANCE ---
+class User {
+  - usrId : Integer
+  - email : String
+  - username : String
+  - firstName : String
+  - lastName : String
+  
+  ' Navigation
+  + getSavedCards() : List<SavedCard>
+  + getReservations() : List<Reservation>
+  + getChargingHistory() : List<ChargingSession>
+  ' Logic
+  + login(password : String) : Boolean
+  + register() : Boolean
+}
+
+class PaymentMethod {
+  - methodName : String
+  + getSavedCards() : List<SavedCard>
+}
+
+class SavedCard {
+  - cardId : Integer
+  - last4Digits : String
+  - token : String
+  
+  ' Navigation
+  + getUser() : User
+  + getPaymentMethod() : PaymentMethod
+}
+
+' --- TRANSACTIONS ---
+class Reservation {
+  - reservationId : Integer
+  - startTime : DateTime
+  - durationMinutes : Integer
+  
+  ' Navigation (Αντί για FK IDs)
+  + getUser() : User
+  + getCharger() : Charger
+  ' Logic Methods (που δεν υπάρχουν στο ER)
+  + getEndTime() : DateTime
+  + isExpired() : Boolean
+  + cancel() : void
+}
+
+class ChargingSession {
+  - sessionId : Integer
+  - startTime : DateTime
+  - endTime : DateTime
+  - totalKwh : Double
+  - totalCost : Float
+  
+  ' Navigation
+  + getUser() : User
+  + getCharger() : Charger
+  + getCard() : SavedCard
+  ' Logic
+  + calculateTotalCost() : Float
+  + getDuration() : TimeSpan
+  + stopSession() : void
+}
+
+' --- RELATIONSHIPS ---
+
+Region "1" -- "*" County : contains
+County "1" -- "*" Location : has
+
+Location "1" -- "*" Station : hosts
+Station "1" -- "*" Charger : includes
+ChargerType "1" -- "*" Charger : describes
+
+User "1" -- "*" SavedCard : owns
+PaymentMethod "1" -- "*" SavedCard : type of
+
+' Reservation Relationships
+User "1" -- "*" Reservation : makes
+Charger "1" -- "*" Reservation : reserved for
+
+' Session Relationships
+User "1" -- "*" ChargingSession : initiates
+Charger "1" -- "*" ChargingSession : performs
+SavedCard "1" -- "*" ChargingSession : pays for
+
+' Enum Usage
+Charger ..> ChargerStatus
+
+@enduml
