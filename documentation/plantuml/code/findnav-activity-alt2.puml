@@ -3,25 +3,25 @@
 start
 
 note left
-Είσοδος από κύριο σενάριο
-μετά το βήμα
-Το σύστημα ενημερώνει κατάλληλα
-τους φορτιστές  που εμφανίζονται
-στον χάρτη
+Entry from main scenario
+after the step
+"The system appropriately updates
+the chargers displayed
+on the map"
 end note
 
-if (Υπάρχουν διαθέσιμοι\nφορτιστές στον χάρτη;) then (ναι)
-  :Επιστροφή στο κύριο σενάριο;
+if (Are there available\nchargers on the map?) then (yes)
+  :Return to the main scenario;
   note left
     Customer (EV Driver)
-    επιλέγει φορτιστή
+    selects a charger
   end note
-else (όχι)
-  :Το σύστημα ενημερώνει τον χρήστη\nότι δεν βρέθηκαν φορτιστές\nγια τα τρέχοντα φίλτρα;
-  :Επιστροφή στο κύριο σενάριο;
+else (no)
+  :The system informs the user\nthat no chargers were found\nfor the current filters;
+  :Return to the main scenario;
   note right
-    Ο Customer (EV Driver)
-    τροποποιεί τα φίλτρα αναζήτησης
+    The Customer (EV Driver)
+    modifies the search filters
   end note
 endif
 
