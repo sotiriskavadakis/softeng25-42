@@ -1,0 +1,57 @@
+@startuml
+
+start
+
+:The customer (EV Driver)
+selects the option View
+Statistics;
+
+:The system retrieves and
+displays the default data for
+the current month;
+
+' The first decision diamond
+if (Statistics Type) then (Aggregated)
+    :The customer (EV
+    Driver) selects the
+    date range;
+
+    :The system retrieves
+    aggregated results for
+    the specified data
+    range;
+else (Analytic)
+    :The customer selects one
+    month or a range of
+    months from the last six
+    months.;
+
+    :The system retrieves
+    analytical information
+    based on the specified
+    range or month;
+endif
+
+:The system updates the
+graphs and the table on the
+user interface;
+
+:The customer wants to
+download the results?;
+
+' The second decision diamond (Download YES/NO)
+if () then (YES)
+    :The system generates
+    dynamically the user statistics
+    report;
+
+    :The system sends the file to the
+    browser for download;
+
+    :The customer saves the file locally;
+    stop
+else (NO)
+    stop
+endif
+
+@enduml
