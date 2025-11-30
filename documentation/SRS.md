@@ -130,7 +130,7 @@
 - Η Maps & Navigation Service είναι διαθέσιμη.  
 - Ο browser του User υποστηρίζει διαδραστικούς χάρτες.  
 - Η χρήση της τοποθεσίας της συσκευής επιτρέπεται μόνο εφόσον ο User έχει παράσχει ρητή συναίνεση.  
-- Ο User δεν απαιτείται να διαθέτει λογαριασμό για την εκτέλεση του use case.
+- Ο User μπορεί να είναι συνδεδεμένος στον λογαριασμό του ή να πραγαμτοποιεί συνεδρία επισκέπτη.
 
 #### 3.1.1.3 Execution environment
 
@@ -151,13 +151,13 @@
   <img src="plantuml/diagrams/uc1_mainflow_activity.png" alt="Σχήμα 3.1.1-2 - Use Case 1 Main Flow"/>
 </p>
 
-**Alternate flow 1: Χρήση τρέχουσας τοποθεσίας ως κέντρο χάρτη**
+**Alternate flow 1: Υπάρχει αποθηκευμένος φορτιστής στη συνεδρία**
 
 <p align="center">
   <img src="plantuml/diagrams/uc1_alt1_activity.png" alt="Σχήμα 3.1.1-3 - Use Case 1 Alt Flow 1"/>
 </p>
 
-**Alternate flow 2: Προβολή χάρτη κεντραρισμένου σε ήδη επιλεγμένο φορτιστή**
+**Alternate flow 2: Τα φίλτρα του χρήστη δεν αντιστοιχούν σε διαθέσιμο φορτιστή**
 
 <p align="center">
   <img src="plantuml/diagrams/uc1_alt2_activity.png" alt="Σχήμα 3.1.1-4 - Use Case 1 Alt Flow 2"/>
