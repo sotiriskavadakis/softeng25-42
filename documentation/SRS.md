@@ -1,6 +1,6 @@
-# EMPower 
+# EMPower
 
-**_Power Your Journey, Empower Your Future_**
+### _Power Your Journey, **EMPower** Your Future!_
 
 ## Software Requirements Specifications (SRS)
 
