@@ -377,8 +377,7 @@ ExtPayment -[hidden]left- ExtHW
 
 ##### 3.1.1.5 Expected behaviour
 
-###### Main Flow
-
+**Main Flow**
 ```
 @startuml UC-FIND-NAV-main-activity
 
@@ -418,8 +417,6 @@ repeat while (Does the Customer (EV Driver)\nconfirm their selection?) is (no) n
 
 @enduml
 ```
-
-###### Alternate Flows
 
 **Alternate flow 1: Υπάρχει αποθηκευμένος φορτιστής στη συνεδρία**
 
