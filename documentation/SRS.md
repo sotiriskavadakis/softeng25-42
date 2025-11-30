@@ -22,9 +22,123 @@
 
 **Block Diagram**
 
-<p align="center">
-  <img src="plantuml/diagrams/Block.png" alt="Οθόνη Εισόδου/Εγγραφής" width="700"/>
-</p>
+```
+@startuml
+skinparam componentStyle uml2
+skinparam linetype ortho
+
+skinparam componentBackgroundColor #87CEFA
+skinparam componentBorderColor #005a9c
+skinparam componentBorderThickness 1.5
+skinparam arrowColor #333333
+skinparam noteBackgroundColor #FFFFFF
+skinparam noteBorderColor #CCCCCC
+
+' --- Actors ---
+actor "User/Guest/Admin" as User
+
+' --- Components (Imitating the Layout) ---
+
+' 1. Database (Left Side)
+component "Database" as DB {
+    port "In" as P_DB_In
+    port "Out" as P_DB_Out
+}
+
+' 2. Search & Filters (Top Middle)
+component "Search Chargers" as Search {
+    port "Filters" as P_Search_Filter
+    port "Results" as P_Search_Res
+}
+
+component "Input & Filters" as Input {
+    port "Criteria" as P_Input_Crit
+}
+
+' 3. Core Logic (Center)
+component "Reservation\nManager" as Reserve {
+    port "Book" as P_Res_Book
+}
+
+component "Session\nManager" as Session {
+    port "Ctrl" as P_Sess_Ctrl
+}
+
+component "Billing\nService" as Billing
+
+' 4. Authentication (Bottom Middle)
+component "Sign In / Up" as Auth {
+    port "Login" as P_Auth_Log
+    port "Register" as P_Auth_Reg
+}
+
+' 5. User Page / Dashboard (Right Side)
+component "User/Admin\nDashboard" as Dashboard {
+    port "View" as P_Dash_View
+}
+
+component "Statistics" as Stats
+
+' --- External Systems (To mimic the Recommendation/External parts) ---
+component "External\nAPIs" as Ext {
+    port "Maps" as P_Maps
+    port "Bank" as P_Bank
+    port "OCPP" as P_OCPP
+}
+
+' --- Connections (The Spaghetti Logic!) ---
+
+' User Interaction
+User --> P_Input_Crit : Search Query
+User --> P_Auth_Log : Credentials
+User --> P_Dash_View : View Profile
+
+' Search Flow
+Input -left-> Search : Apply Filters
+Search -down-> DB : Query Data
+DB -up-> Search : Return Data
+Search -right-> Dashboard : Display Results
+
+' Auth Flow
+Auth -left-> DB : Validate User
+Auth -right-> Dashboard : Grant Access
+
+' Reservation Flow
+Dashboard --> Reserve : Request Booking
+Reserve --> Billing : Pre-auth
+Billing --> Ext : Payment Gateway
+Reserve -left-> DB : Store Reservation
+
+' Charging Flow
+Session --> Ext : OCPP Commands
+Ext --> Session : Meter Values
+Session --> Billing : Cost Calculation
+Session -left-> DB : Log History
+
+' Stats Flow
+Stats -up-> DB : Fetch Data
+Stats -right-> Dashboard : Show Charts
+
+' --- Notes (Like the screenshot) ---
+note top of Input
+  Filter component contains
+  input for search based on:
+  - Plug Type
+  - Power (kW)
+  - Availability
+end note
+
+note left of DB
+  Central Storage for:
+  - Users
+  - Chargers
+  - Sessions
+  - Reservations
+end note
+
+@enduml
+
+```
 
 ### 1.2 Interfaces
 
@@ -47,7 +161,135 @@
 
 **Component Diagram**
 
-![Σχήμα 1.2.1 - Component Diagram](plantuml/diagrams/Component.png)
+```
+@startuml
+skinparam componentStyle uml2
+skinparam linetype ortho
+left to right direction
+
+'--- Styling ---
+skinparam backgroundColor white
+skinparam component {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+  ArrowColor #455A64
+  FontName Arial
+  FontSize 12
+}
+skinparam component<<subsystem>> {
+  BackgroundColor #F5F5F5
+  BorderColor #424242
+  BorderStyle dashed
+}
+skinparam interface {
+  BackgroundColor #1565C0
+  BorderColor #1565C0
+}
+skinparam port {
+  BackgroundColor #FFCA28
+  BorderColor #FFA000
+}
+
+'--- External Actors ---
+interface "User/Admin" as ExtUser
+interface "External\nPayment API" as ExtPayment
+interface "Charger\nHardware (OCPP)" as ExtHW
+interface "3rd Party\nIdentity Provider" as ExtSSO
+
+'--- The Main Subsystem Boundary ---
+component "EV Charging System" <<subsystem>> {
+
+    '--- Ports ---
+    port "UI Port" as P_UI
+    port "Bank Port" as P_Bank
+    port "HW Port" as P_HW
+    port "Auth Port" as P_Auth
+
+    '--- Internal Grouping ---
+    package "Presentation Layer" {
+        component "Dashboard UI" as Dash <<Component>>
+    }
+
+    package "Core Business Logic" {
+        component "Auth Service" as Auth <<Component>>
+        component "Search Service" as Search <<Component>>
+        component "Reservation\nManager" as Res <<Component>>
+        component "Session\nManager" as Session <<Component>>
+        component "Billing Service" as Billing <<Component>>
+        component "Display Statistics" as Stats <<Component>>
+    }
+
+    package "Data Layer" {
+        component "Database\nAccess" as DB <<Component>>
+    }
+
+    '--- Internal Interfaces (Wiring) ---
+    
+    ' 1. Auth 
+    interface "Auth Interface" as IAuth
+    Auth -left- IAuth
+    Dash --( IAuth
+    Auth --(0- P_Auth : verifies token
+
+    ' 2. Search
+    interface "Search Interface" as ISearch
+    Search -left- ISearch
+    Dash --( ISearch
+
+    ' 3. Reservation
+    interface "Booking Interface" as IBooking
+    Res -left- IBooking
+    Dash --( IBooking
+
+    ' 4. Billing
+    interface "Billing Interface" as IBilling
+    Billing -up- IBilling
+    Res --( IBilling
+    Session --( IBilling
+
+    ' 5. Statistics (New)
+    interface "Statistics Interface" as IStats
+    Stats -left- IStats
+    Dash --( IStats
+
+    ' 6. Database (Shared)
+    interface "Data Interface" as IData
+    DB -left- IData
+    Auth --( IData
+    Search --( IData
+    Res --( IData
+    Session --( IData
+    Stats --( IData
+
+    '--- Port Connections ---
+    P_UI -right- Dash
+    
+    ' Connect bottom components to bottom ports
+    Session --(0- P_HW
+    Billing --(0- P_Bank
+
+    '--- Layout Helpers (Hidden lines to stack logic components) ---
+    Auth -[hidden]down- Search
+    Search -[hidden]down- Res
+    Res -[hidden]down- Session
+    Session -[hidden]down- Billing
+    Billing -[hidden]down- Stats
+}
+
+'--- External Connections ---
+ExtUser -- P_UI
+
+' Bottom External Systems
+P_Auth -- ExtSSO
+P_Bank -- ExtPayment
+P_HW -- ExtHW
+
+' Organize bottom row
+ExtSSO -[hidden]left- ExtPayment
+ExtPayment -[hidden]left- ExtHW
+
+@enduml
+```
 
 #### 1.2.2 User Interfaces
 
@@ -55,39 +297,27 @@
 
 - **Οθόνη Εισόδου/Εγγραφής:** Για την ασφαλή ταυτοποίηση του χρήστη. Η σύνδεση δεν είναι υποχρεωτική, καθώς ο χρήστης μπορεί να δει το δίκτυο ανώνυμα εάν το επιθυμεί, με απενεργοποιημένη τη δυνατότητα δέσμευσης και φόρτισης.
 
-<p align="center">
-  <img src="screens/login_screen.jpg" alt="Οθόνη Εισόδου/Εγγραφής" width="700"/>
-</p>
+[Login Screen](https://imgur.com/aFWLYIi)
 
 - **Χάρτης/Αναζήτηση:** Εμφάνιση σημείων φόρτισης, φίλτρα διαθεσιμότητας και επιλογή για πλοήγηση ή δέσμευση.
 
-<p align="center">
-  <img src="screens/map_screen.jpg" alt="Οθόνη Χάρτη/Αναζήτησης" width="700"/>
-</p>
+[Map Screen](https://imgur.com/kule4Zg)
 
 - **Οθόνη Φορτιστή:** Εμφάνιση λεπτομερειών του επιλεγμένου φορτιστή και επιλογές δέσμευσης ή έναρξης φόρτισης.
 
-<p align="center">
-  <img src="screens/charger_screen.jpg" alt="Οθόνη Φορτιστή" width="700"/>
-</p>
+[Charger Details Screen](https://imgur.com/lQm56B1)
 
 - **Συνεδρία Φόρτισης (Live):** Οθόνη που εμφανίζει την πρόοδο (%, kWh, τρέχον κόστος) και κουμπί τερματισμού.
 
-<p align="center">
-  <img src="screens/charging_screen.jpg" alt="Οθόνη Συνεδρίας Φόρτισης" width="700"/>
-</p>
+[Charging Screen](https://imgur.com/9Fuvrff)
 
 - **Στατιστικά Χρήστη:** Οθόνη που εμφανίζει στατιστικά σχετικά με την δραστηριότητα του χρήστη (δαπάνες/κατανάλωση σε kWh ανά συγκεκριμένα χρονικά διαστήματα, μέσος χρόνος φόρτισης, πιο συχνά σημεία φόρτισης κ.α).
 
-<p align="center">
-  <img src="screens/stats_screen.jpg" alt="Οθόνη Στατιστικών Χρήστη" width="700"/>
-</p>
+[User Stats](https://imgur.com/WB3qZ38)
 
 - **Στατιστικά Διαχειριστή:** Οθόνη που παρέχει συνολική εικόνα για την απόδοση του δικτύου φορτιστών (συνολικά έσοδα, κατανάλωση σε kWh, πλήθος συνεδριών ανά χρονικό εύρος), με στοιχεία για την πληρότητα των σταθμών (utilization), τον εντοπισμό ωρών αιχμής και αναλυτικές αναφορές βλαβών ανά σταθμό ή περιοχή.
 
-<p align="center">
-  <img src="screens/admin_stats_screen.png" alt="Οθόνη Στατιστικών Διαχειριστή" width="700"/>
-</p>
+[Admin Stats](https://imgur.com/PQESCpj)
 
 
 ---
@@ -149,23 +379,116 @@
 
 ###### Main Flow
 
-<p align="center">
-  <img src="plantuml/diagrams/uc1_mainflow_activity.png" alt="Σχήμα 3.1.1-2 - Use Case 1 Main Flow"/>
-</p>
+```
+@startuml UC-FIND-NAV-main-activity
+
+start
+
+:Maps & Navigation Service\nshows the map;
+:The system displays\nthe search filters;
+
+:The system requests access\nto the user's location;
+:The Customer (EV Driver) accepts\nor denies the access request;
+
+if (Did the Customer (EV Driver)\nallow location access?) then (yes)
+  :The Device Location Service\nretrieves the user's location;
+  :The Maps & Navigation Service\ncenters the map on\nthe user's location;
+else (no)
+  :The Maps & Navigation Service\ncenters the map on\nthe default location;
+endif
+
+
+repeat
+:The Customer (EV Driver)\nmodifies the search filters;
+:The system updates accordingly\nthe chargers displayed\non the map;
+
+repeat while (Has the Customer (EV Driver)\nfinished the search?) is (no) not (yes)
+
+
+repeat
+:The Customer (EV Driver)\nselects a charger;
+:The system displays\nthe characteristics of the\nselected charger;
+
+repeat while (Does the Customer (EV Driver)\nconfirm their selection?) is (no) not (yes)
+  :The system stores\nthe selected charger\nin the session;
+  :The Customer (EV Driver)\nchooses to start\nnavigation;
+  :The Maps & Navigation Service\ncreates the navigation link;
+  :The system redirects\nthe user to the\nnavigation platform;
+  stop
+
+@enduml
+```
 
 ###### Alternate Flows
 
 **Alternate flow 1: Υπάρχει αποθηκευμένος φορτιστής στη συνεδρία**
 
-<p align="center">
-  <img src="plantuml/diagrams/uc1_alt1_activity.png" alt="Σχήμα 3.1.1-3 - Use Case 1 Alt Flow 1"/>
-</p>
+```
+@startuml UC-FIND-NAV-alt-saved-charger
 
-**Alternate flow 2: Τα φίλτρα του χρήστη δεν αντιστοιχούν σε διαθέσιμο φορτιστ**
+start
+note left
+Entry from main scenario
+after the step
+«Maps & Navigation Service
+shows the map»
+end note
 
-<p align="center">
-  <img src="plantuml/diagrams/uc1_alt2_activity.png" alt="Σχήμα 3.1.1-4 - Use Case 1 Alt Flow 2"/>
-</p>
+
+:The system checks whether there is\na selected charger\nin the session;
+
+if (Is there a selected\ncharger in the session?) then (yes)
+  :The Maps & Navigation Service\ncenters the map\non the charger's location;
+  :Return to the main scenario;
+  note left
+    «The Customer modifies
+    the search filters»
+  end note
+else (no)
+  :Return to the main scenario;
+  note right
+    «The system requests access
+    to the user's location»
+  end note
+endif
+
+stop
+@enduml
+```
+
+**Alternate flow 2: Τα φίλτρα του χρήστη δεν αντιστοιχούν σε διαθέσιμο φορτιστή**
+
+```
+@startuml UC-FIND-NAV-alt-no-chargers
+
+start
+
+note left
+Entry from main scenario
+after the step
+"The system appropriately updates
+the chargers displayed
+on the map"
+end note
+
+if (Are there available\nchargers on the map?) then (yes)
+  :Return to the main scenario;
+  note left
+    Customer (EV Driver)
+    selects a charger
+  end note
+else (no)
+  :The system informs the user\nthat no chargers were found\nfor the current filters;
+  :Return to the main scenario;
+  note right
+    The Customer (EV Driver)
+    modifies the search filters
+  end note
+endif
+
+stop
+@enduml
+```
 
 ##### 3.1.1.6 Output data and postconditions
 
@@ -225,26 +548,67 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 
 **Main flow**
 
-<p align="center">
-  <img src="plantuml/diagrams/UC2-main.png" alt="Σχήμα 3.1.2-1 - Use Case 2 Main Flow"/>
-</p>
+```
+@startuml
+start
+:User clicks "Reserve" button;
+:System checks charger availability;
+if (Charger Available?) then (yes)
+  :Request payment pre-authorization;
+  if (Payment Successful?) then (yes)
+    :Lock charger (Status=Reserved);
+    :Generate unique Reservation ID;
+    :Start reservation timer;
+    :Send confirmation notification;
+    :Show reservation confirmation;
+    stop
+  else (no)
+    :Show payment error message;
+    stop
+  endif
+else (no)
+  :Show "Charger not available" error;
+  stop
+endif
+@enduml
+```
 
 **Alternate flow 1: Χειροκίνητη Ακύρωση (User Cancellation)**
 
 Ο χρήστης αποφασίζει να ακυρώσει την κράτηση πριν φτάσει στον φορτιστή.
 
-<p align="center">
-  <img src="plantuml/diagrams/UC2-alt1.png" alt="Σχήμα 3.1.2-2 - Use Case 2 Alt Flow 1"/>
-</p>
-
+```
+@startuml
+start
+:User clicks "Cancel Reservation";
+:System releases charger
+(Status = Available);
+:Release payment pre-authorization;
+:Send cancellation confirmation;
+stop
+@enduml
+```
 
 **Alternate flow 2: Λήξη Χρόνου / No-Show (Timer Expiry)**
 
 Ο χρήστης δεν εμφανίζεται εντός του καθορισμένου χρονικού ορίου.
 
-<p align="center">
-  <img src="plantuml/diagrams/UC2-alt2.png" alt="Σχήμα 3.1.2-3 - Use Case 2 Alt Flow 2"/>
-</p>
+```
+@startuml
+start
+:Reservation timer expires;
+if (Charging started?) then (No)
+  :Cancel Reservation;
+  :Change charger status to "Available";
+  :Charge no-show fee (optional);
+  :Release remaining pre-authorized amount;
+  :Send "Reservation expired" notification;
+else (Yes)
+  :Continue charging flow;
+endif
+stop
+@enduml
+```
 
 ##### 3.1.2.6 Output data and postconditions
 **Output data:**
@@ -283,6 +647,7 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 
 - Ο χρήστης έχει συνδεθεί επιτυχώς στον λογαριασμό του (authentication) και είναι εγγεγραμμένος στο σύστημα.
 - Υπάρχουν καταγεγραμμένες συνεδρίες φόρτισης και πληρωμών στη βάση δεδομένων που σχετίζονται με τον λογαριασμό του χρήστη.
+- Η συσκευή έχει ενεργή σύνδεση στο διαδίκτυο.
 
 ##### 3.1.3.3 Execution environment
 
@@ -298,9 +663,65 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 
 **Main flow**
 
-<p align="center">
-  <img src="plantuml/diagrams/UC3.png" alt="Σχήμα 3.1.4-1 - Use Case 4 Main Flow"/>
-</p>
+```
+@startuml
+
+start
+
+:The customer (EV Driver)
+selects the option View
+Statistics;
+
+:The system retrieves and
+displays the default data for
+the current month;
+
+' The first decision diamond
+if (Statistics Type) then (Aggregated)
+    :The customer (EV
+    Driver) selects the
+    date range;
+
+    :The system retrieves
+    aggregated results for
+    the specified data
+    range;
+else (Analytic)
+    :The customer selects one
+    month or a range of
+    months from the last six
+    months.;
+
+    :The system retrieves
+    analytical information
+    based on the specified
+    range or month;
+endif
+
+:The system updates the
+graphs and the table on the
+user interface;
+
+:The customer wants to
+download the results?;
+
+' The second decision diamond (Download YES/NO)
+if () then (YES)
+    :The system generates
+    dynamically the user statistics
+    report;
+
+    :The system sends the file to the
+    browser for download;
+
+    :The customer saves the file locally;
+    stop
+else (NO)
+    stop
+endif
+
+@enduml
+```
 
 
 ##### 3.1.3.6 Output data and postconditions
@@ -321,7 +742,7 @@ Web πλατφόρμα ή Mobile εφαρμογή (Android/iOS) με υποστ�
 - Data Aggregation Strategy: Για διαστήματα μεγαλύτερα του εξαμήνου, το σύστημα επιστρέφει προσυμπληρωμένα (pre-calculated) αθροίσματα ανά μήνα, ώστε να ελαχιστοποιείται ο χρόνος απόκρισης της βάσης δεδομένων.
 - Σε περίπτωση που δεν υπάρχουν δεδομένα για την επιλεγμένη περίοδο, το PDF που παράγεται και το user interface θα περιέχει σχετική ένδειξη ("No data found").
 - Δημιουργία Αναφοράς: Η διαδικασία δημιουργίας του PDF (Report Generation) εκτελείται ασύγχρονα στον server για να μην επιβαρύνει την απόκριση του User Interface, ειδικά όταν ζητείται μεγάλος όγκος δεδομένων
-- Σε περίπτωση που ο χρήστης επιθύμει να δει αναλυτικά στατιστικά του θα πρέπει να επικοινωνήσει με τα κεντρικά. 
+- Σε περίπτωση που ο χρήστης επιθύμει να δει αναλυτικά τα στατιστικά του θα πρέπει να επικοινωνήσει με τα κεντρικά. 
 
 #### 3.1.4 Use case 4: Display Admin Statistics
 
@@ -353,9 +774,82 @@ Web Admin Portal (βελτιστοποιημένο για Desktop ή Smartphone)
 
 **Main Flow**
 
-<p align="center">
-  <img src="plantuml/diagrams/UC4.png" alt="Σχήμα 3.1.4 - Use Case 4 Main Flow"/>
-</p>
+```
+@startuml
+title Activity Diagram – Admin View Statistics (Optimized)
+
+skinparam conditionStyle insideDiamond
+
+start
+
+:Admin logs in;
+:Admin opens "Statistics Dashboard";
+
+' --- INITIAL LOAD ---
+:System loads "System-wide" statistics (Default View);
+note right
+  Defaults: Last 30 days, 
+  All Areas, All Stations
+end note
+
+:System displays summary metrics and charts;
+
+' --- MAIN INTERACTION LOOP ---
+repeat
+
+    ' --- FILTER FLOW ---
+    if (Admin needs to filter?) then (Yes)
+        :Admin selects Date Range / Station / Area;
+        :System reloads data based on new context;
+    else (No)
+    endif
+
+    ' --- VIEW SWITCHING ---
+    :Admin selects/switches View Tab;
+
+    'Using SPLIT to show these are parallel options
+    split
+        -> **System-wide**;
+        :System shows Overall Metrics:
+        - Total Sessions & Revenue
+        - Total kWh
+        - Utilization Heatmap;
+    
+    split again
+        -> **Per Area**;
+        :System shows Area Analytics:
+        - Revenue per Area
+        - Most Popular Areas
+        - Regional Peak Hours;
+        
+    split again
+        -> **Per Station**;
+        :System shows Station Analytics:
+        - Utilization Rate %
+        - Queue/Wait times
+        - Connector availability;
+        
+    split again
+        -> **Per Charger**;
+        :System shows Hardware Analytics:
+        - **Fault/Error Logs**
+        - Avg. charging speed (kW)
+        - Session duration;
+    end split
+
+    ' --- EXPORT FLOW ---
+    if (Admin clicks Export?) then (Yes)
+        :System generates PDF/CSV report
+        based on current view;
+        :Admin downloads file;
+    else (No)
+    endif
+
+repeat while (Admin continues analysis?) is (Yes)
+
+stop
+@enduml
+```
 
 ##### 3.1.4.6 Output data and postconditions
 **Output data:**
@@ -388,9 +882,249 @@ Web Admin Portal (βελτιστοποιημένο για Desktop ή Smartphone)
 
 **Διάγραμμα Απαιτήσεων Συστήματος:**
 
-<p align="center">
-  <img src="plantuml/diagrams/Requirements.png" alt="Requirements Diagram"/>
-</p>
+```
+@startuml
+
+' --- LAYOUT CONFIGURATION ---
+left to right direction
+skinparam linetype ortho
+skinparam nodesep 30
+skinparam ranksep 60
+skinparam shadowing true
+skinparam roundcorner 10
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+
+' --- STYLING ---
+skinparam package {
+    BackgroundColor #F4F6F7
+    BorderColor #B0BEC5
+    FontColor #546E7A
+    FontStyle bold
+}
+
+skinparam class {
+    ' Main Body
+    BackgroundColor #E9F7EF
+    BorderColor #1E8449
+    FontColor #145A32
+    AttributeFontColor #1E8449
+    AttributeFontSize 11
+    
+    ' Header (Stereotype area)
+    HeaderBackgroundColor #ABEBC6
+    HeaderFontColor #145A32
+    HeaderFontStyle bold
+    
+    ' Connectors
+    ArrowColor #2E4053
+    ArrowThickness 1.5
+}
+
+hide circle
+hide methods
+
+' --- Root Node ---
+class "EVCharge Manager System" as Root <<Requirement>> {
+    Text: All system requirements
+}
+
+' --- 1. Functional Requirements Package ---
+package "Functional Requirements" {
+    
+    class "User Capabilities" as FuncUser <<Requirement>> {
+        Id: FUNC-00
+        Text: User-facing features
+    }
+
+    class "FR-01: Manage Account" as FR1 <<Functional>> {
+        Id: FR-01
+        Text: User registration & profile
+    }
+
+    class "FR-02: Search Chargers" as FR2 <<Functional>> {
+        Id: FR-02
+        Text: Find on interactive map
+    }
+
+    class "FR-03: Reserve Charger" as FR3 <<Functional>> {
+        Id: FR-03
+        Text: Book for 15-60 mins
+    }
+
+    class "FR-04: Charging Session" as FR4 <<Functional>> {
+        Id: FR-04
+        Text: Start/Stop & Monitor
+    }
+
+    class "FR-05: User Statistics" as FR5 <<Functional>> {
+        Id: FR-05
+        Text: View personal usage stats
+    }
+
+    class "FR-07: Transaction History" as FR7 <<Functional>> {
+        Id: FR-07
+        Text: View & export history
+    }
+
+    class "Admin Capabilities" as FuncAdmin <<Requirement>> {
+        Id: FUNC-99
+        Text: Back-office features
+    }
+
+    class "FR-06: Dynamic Pricing" as FR6 <<Functional>> {
+        Id: FR-06
+        Text: Flexible pricing policies
+    }
+
+    class "FR-08: CLI Management" as FR8 <<Functional>> {
+        Id: FR-08
+        Text: Command line admin tools
+    }
+}
+
+' --- 2. Non-Functional Requirements Package ---
+package "Non-Functional Requirements" {
+
+    class "Performance" as Perf <<Requirement>> {
+        Id: NFR-P
+        Text: Performance constraints
+    }
+
+    class "PERF-01: Response Time" as P1 <<Performance>> {
+        Id: PERF-01
+        Text: API response < 500ms
+    }
+
+    class "PERF-02: Concurrency" as P2 <<Performance>> {
+        Id: PERF-02
+        Text: Support multiple users
+    }
+
+    class "PERF-03: Real-time Updates" as P3 <<Performance>> {
+        Id: PERF-03
+        Text: Status updates in seconds
+    }
+
+    class "Security" as Sec <<Requirement>> {
+        Id: NFR-S
+        Text: Security constraints
+    }
+
+    class "SEC-01: Encryption" as S1 <<Security>> {
+        Id: SEC-01
+        Text: HTTPS/TLS 1.3 + OAuth
+    }
+
+    class "SEC-02: Data Protection" as S2 <<Security>> {
+        Id: SEC-02
+        Text: PCI-DSS compliance
+    }
+
+    class "SEC-03: Authentication" as S3 <<Security>> {
+        Id: SEC-03
+        Text: Strong auth for payments
+    }
+    
+    class "Availability" as Avail <<Requirement>> {
+        Id: NFR-A
+        Text: Availability constraints
+    }
+
+    class "AVAIL-01: Uptime" as A1 <<Availability>> {
+        Id: AVAIL-01
+        Text: 99% Service availability
+    }
+
+    class "AVAIL-02: Offline Mode" as A2 <<Availability>> {
+        Id: AVAIL-02
+        Text: Local storage on disconnect
+    }
+
+    class "AVAIL-03: Fail-safe" as A3 <<Availability>> {
+        Id: AVAIL-03
+        Text: Unlock on network failure
+    }
+}
+
+' --- 3. External Interfaces Package ---
+package "External Interfaces" {
+    class "OCPP Interface" as HW <<Interface>> {
+        Id: INT-01
+        Text: Protocol via WebSockets
+    }
+    
+    class "Payment Interface" as Pay <<Interface>> {
+        Id: INT-02
+        Text: Payment Gateway API
+    }
+
+    class "Maps Interface" as Maps <<Interface>> {
+        Id: INT-03
+        Text: Google Maps API
+    }
+
+    class "Identity Interface" as Auth <<Interface>> {
+        Id: INT-04
+        Text: OAuth Providers
+    }
+
+    class "Notification Interface" as Notif <<Interface>> {
+        Id: INT-05
+        Text: Email/SMS/Push
+    }
+}
+
+' --- Relationships ---
+
+' Main Branches
+Root *-- FuncUser
+Root *-- FuncAdmin
+Root *-- Perf
+Root *-- Sec
+Root *-- Avail
+Root *-- HW
+Root *-- Pay
+Root *-- Maps
+Root *-- Auth
+Root *-- Notif
+
+' Functional Children (User)
+FuncUser *-- FR1
+FuncUser *-- FR2
+FuncUser *-- FR3
+FuncUser *-- FR4
+FuncUser *-- FR5
+FuncUser *-- FR7
+
+' Functional Children (Admin)
+FuncAdmin *-- FR6
+FuncAdmin *-- FR8
+
+' Performance Children
+Perf *-- P1
+Perf *-- P2
+Perf *-- P3
+
+' Security Children
+Sec *-- S1
+Sec *-- S2
+Sec *-- S3
+
+' Availability Children
+Avail *-- A1
+Avail *-- A2
+Avail *-- A3
+
+' Dependencies between FR and NFR
+' Using different color for dependencies to make them distinct
+FR3 .[#Red].> S2 : <<requires>>
+FR4 .[#Red].> S2 : <<requires>>
+FR4 .[#Blue].> P1 : <<satisfies>>
+FR2 .[#Blue].> P3 : <<satisfies>>
+
+@enduml
+```
 
 **Περιγραφή Λειτουργικών Απαιτήσεων:**
 
@@ -462,11 +1196,331 @@ Web Admin Portal (βελτιστοποιημένο για Desktop ή Smartphone)
 
 **ER Diagram**
 
-<p align="center">
-  <img src="plantuml/diagrams/ER.png" alt="Σχήμα 3.4.2 — ER Diagram του Συστήματος" width="700" height="900" />
-</p>
+```
+@startuml
+' VISUAL STYLING
+!theme plain
+hide circle
+skinparam linetype ortho
 
+' ENUMS
+enum chargerStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  FAULTED
+  OFFLINE
+}
 
+' --- GEOGRAPHY ---
+entity "Region" as region {
+  name : string <<PK>>
+}
+
+entity "County" as county {
+  name : string <<PK>>
+  --
+  region_name : string <<FK>>
+}
+
+' --- INFRASTRUCTURE ---
+
+entity "Location" as location {
+  ' Represents the parking lot / site
+  location_id : serial <<PK>>
+  --
+  county_name : string <<FK>>
+  access: int
+  address : string
+  available_station_count : int | null {nullable}
+  coming_soon: boolean
+  charger_types : array
+  icon : string
+  icon_type : string
+  id: int
+  in_use_station_count: int | null {nullable}
+  latitude : double
+  longitude : double
+  is_active : boolean
+  map_card_logo_url : string
+  name : string
+  score : float
+  station_count : int
+  thumbnail_url : string
+  under_repair : boolean
+  url : string
+}
+
+entity "Station" as station {
+  ' Represents the physical EVSE box (e.g. The AC post or the DC cabinet)
+  station_id : serial <<PK>>
+  --
+  location_id : int <<FK>>
+  network_id : int
+  physical_id : string
+}
+
+entity "ChargerType" as charger_type {
+  ' LOOKUP TABLE: e.g. CCS2, Type 2, CHAdeMO
+  type_id : serial <<PK>>
+  --
+  name : string
+  max_supported_power : double
+  icon_url : string
+}
+
+entity "Charger" as charger {
+  ' The specific plug/outlet
+  charger_id : serial <<PK>>
+  --
+  station_id : int <<FK>>
+  type_id : int <<FK>>
+  status : chargerStatus
+  max_power_kw : double
+  tariff_per_kwh : float
+}
+
+' --- USERS & FINANCE ---
+
+entity "User" as usr {
+  usr_id : serial <<PK>>
+  --
+  email : string
+  username : string
+  password_hash : string
+  first_name : string
+  last_name : string
+}
+
+entity "PaymentMethod" as pay_method {
+  method_name : string <<PK>>
+}
+
+entity "SavedCard" as card {
+  card_id : serial <<PK>>
+  --
+  usr_id : int <<FK>>
+  method_name : string <<FK>>
+  last_4_digits : string
+  token : string
+}
+
+' --- TRANSACTIONS ---
+
+entity "Reservation" as reservation {
+  reservation_id : serial <<PK>>
+  --
+  usr_id : int <<FK>>
+  charger_id : int <<FK>>
+  start_time : timestamp
+  duration_minutes : int
+}
+
+entity "ChargingSession" as session {
+  session_id : serial <<PK>>
+  --
+  usr_id : int <<FK>>
+  charger_id : int <<FK>>
+  card_id : int <<FK>>
+  start_time : timestamp
+  end_time : timestamp
+  total_kwh : double
+  total_cost : float
+}
+
+' --- RELATIONSHIPS ---
+
+region ||..o{ county
+county ||..o{ location
+
+location ||..o{ station
+station ||..o{ charger
+
+charger_type ||..o{ charger
+
+usr ||..o{ card
+pay_method ||..o{ card
+
+usr ||..o{ reservation
+charger ||..o{ reservation
+
+usr ||..o{ session
+charger ||..o{ session
+card ||..o{ session
+@enduml
+```
+
+**Class Diagram**
+
+```
+@startuml
+' VISUAL STYLING
+!theme plain
+hide circle
+skinparam linetype ortho
+
+' --- ENUMS ---
+enum ChargerStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  FAULTED
+  OFFLINE
+}
+
+' --- GEOGRAPHY ---
+class Region {
+  - name : String
+  + getCounties() : List<County>
+}
+
+class County {
+  - name : String
+  + getRegion() : Region
+  + getLocations() : List<Location>
+}
+
+' --- INFRASTRUCTURE ---
+class Location {
+  - locationId : Integer
+  - access : Integer
+  - address : String
+  - availableStationCount : Integer
+  - chargerTypes : List<String>
+  - isActive : Boolean
+  - name : String
+  - score : Float
+  
+  ' Navigation Methods
+  + getStations() : List<Station>
+  + getCounty() : County
+  ' Logic Methods
+  + isOpen() : Boolean
+  + hasAvailableChargers() : Boolean
+}
+
+class Station {
+  - stationId : Integer
+  - networkId : Integer
+  - physicalId : String
+  
+  ' Navigation
+  + getLocation() : Location
+  + getChargers() : List<Charger>
+}
+
+class ChargerType {
+  - typeId : Integer
+  - name : String
+  - maxSupportedPower : Double
+  
+  + getChargers() : List<Charger>
+}
+
+class Charger {
+  - chargerId : Integer
+  - status : ChargerStatus
+  - maxPowerKw : Double
+  - tariffPerKwh : Float
+  
+  ' Navigation
+  + getStation() : Station
+  + getChargerType() : ChargerType
+  + getCurrentSession() : ChargingSession
+  ' Logic
+  + isAvailable() : Boolean
+}
+
+' --- USERS & FINANCE ---
+class User {
+  - usrId : Integer
+  - email : String
+  - username : String
+  - firstName : String
+  - lastName : String
+  
+  ' Navigation
+  + getSavedCards() : List<SavedCard>
+  + getReservations() : List<Reservation>
+  + getChargingHistory() : List<ChargingSession>
+  ' Logic
+  + login(password : String) : Boolean
+  + register() : Boolean
+}
+
+class PaymentMethod {
+  - methodName : String
+  + getSavedCards() : List<SavedCard>
+}
+
+class SavedCard {
+  - cardId : Integer
+  - last4Digits : String
+  - token : String
+  
+  ' Navigation
+  + getUser() : User
+  + getPaymentMethod() : PaymentMethod
+}
+
+' --- TRANSACTIONS ---
+class Reservation {
+  - reservationId : Integer
+  - startTime : DateTime
+  - durationMinutes : Integer
+  
+  ' Navigation (Αντί για FK IDs)
+  + getUser() : User
+  + getCharger() : Charger
+  ' Logic Methods (που δεν υπάρχουν στο ER)
+  + getEndTime() : DateTime
+  + isExpired() : Boolean
+  + cancel() : void
+}
+
+class ChargingSession {
+  - sessionId : Integer
+  - startTime : DateTime
+  - endTime : DateTime
+  - totalKwh : Double
+  - totalCost : Float
+  
+  ' Navigation
+  + getUser() : User
+  + getCharger() : Charger
+  + getCard() : SavedCard
+  ' Logic
+  + calculateTotalCost() : Float
+  + getDuration() : TimeSpan
+  + stopSession() : void
+}
+
+' --- RELATIONSHIPS ---
+
+Region "1" -- "*" County : contains
+County "1" -- "*" Location : has
+
+Location "1" -- "*" Station : hosts
+Station "1" -- "*" Charger : includes
+ChargerType "1" -- "*" Charger : describes
+
+User "1" -- "*" SavedCard : owns
+PaymentMethod "1" -- "*" SavedCard : type of
+
+' Reservation Relationships
+User "1" -- "*" Reservation : makes
+Charger "1" -- "*" Reservation : reserved for
+
+' Session Relationships
+User "1" -- "*" ChargingSession : initiates
+Charger "1" -- "*" ChargingSession : performs
+SavedCard "1" -- "*" ChargingSession : pays for
+
+' Enum Usage
+Charger ..> ChargerStatus
+
+@enduml
+```
 
 ### 3.5 Other requirements
 

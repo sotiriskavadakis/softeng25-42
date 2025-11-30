@@ -1,13 +1,41 @@
 @startuml
-' Style settings to mimic Visual Paradigm SysML style (Green Boxes)
-skinparam class {
-    BackgroundColor #D5E8D4
-    BorderColor #669900
-    ArrowColor #333333
-    AttributeFontSize 11
-    HeaderBackgroundColor #97D077
+
+' --- LAYOUT CONFIGURATION ---
+left to right direction
+skinparam linetype ortho
+skinparam nodesep 30
+skinparam ranksep 60
+skinparam shadowing true
+skinparam roundcorner 10
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 12
+
+' --- STYLING ---
+skinparam package {
+    BackgroundColor #F4F6F7
+    BorderColor #B0BEC5
+    FontColor #546E7A
+    FontStyle bold
 }
-skinparam stereotypeCBackgroundColor #FFFFFF
+
+skinparam class {
+    ' Main Body
+    BackgroundColor #E9F7EF
+    BorderColor #1E8449
+    FontColor #145A32
+    AttributeFontColor #1E8449
+    AttributeFontSize 11
+    
+    ' Header (Stereotype area)
+    HeaderBackgroundColor #ABEBC6
+    HeaderFontColor #145A32
+    HeaderFontStyle bold
+    
+    ' Connectors
+    ArrowColor #2E4053
+    ArrowThickness 1.5
+}
+
 hide circle
 hide methods
 
@@ -26,22 +54,22 @@ package "Functional Requirements" {
 
     class "FR-01: Manage Account" as FR1 <<Functional>> {
         Id: FR-01
-        Text: User registration & profile management
+        Text: User registration & profile
     }
 
     class "FR-02: Search Chargers" as FR2 <<Functional>> {
         Id: FR-02
-        Text: Find chargers on interactive map
+        Text: Find on interactive map
     }
 
     class "FR-03: Reserve Charger" as FR3 <<Functional>> {
         Id: FR-03
-        Text: Book charger for 15-60 mins
+        Text: Book for 15-60 mins
     }
 
     class "FR-04: Charging Session" as FR4 <<Functional>> {
         Id: FR-04
-        Text: Start/Stop & Monitor charging
+        Text: Start/Stop & Monitor
     }
 
     class "FR-05: User Statistics" as FR5 <<Functional>> {
@@ -51,7 +79,7 @@ package "Functional Requirements" {
 
     class "FR-07: Transaction History" as FR7 <<Functional>> {
         Id: FR-07
-        Text: View & export session history
+        Text: View & export history
     }
 
     class "Admin Capabilities" as FuncAdmin <<Requirement>> {
@@ -75,7 +103,7 @@ package "Non-Functional Requirements" {
 
     class "Performance" as Perf <<Requirement>> {
         Id: NFR-P
-        Text: Performance requirements
+        Text: Performance constraints
     }
 
     class "PERF-01: Response Time" as P1 <<Performance>> {
@@ -90,12 +118,12 @@ package "Non-Functional Requirements" {
 
     class "PERF-03: Real-time Updates" as P3 <<Performance>> {
         Id: PERF-03
-        Text: Charger status updates in seconds
+        Text: Status updates in seconds
     }
 
     class "Security" as Sec <<Requirement>> {
         Id: NFR-S
-        Text: Security requirements
+        Text: Security constraints
     }
 
     class "SEC-01: Encryption" as S1 <<Security>> {
@@ -115,7 +143,7 @@ package "Non-Functional Requirements" {
     
     class "Availability" as Avail <<Requirement>> {
         Id: NFR-A
-        Text: Availability requirements
+        Text: Availability constraints
     }
 
     class "AVAIL-01: Uptime" as A1 <<Availability>> {
@@ -125,12 +153,12 @@ package "Non-Functional Requirements" {
 
     class "AVAIL-02: Offline Mode" as A2 <<Availability>> {
         Id: AVAIL-02
-        Text: Local data storage on disconnect
+        Text: Local storage on disconnect
     }
 
     class "AVAIL-03: Fail-safe" as A3 <<Availability>> {
         Id: AVAIL-03
-        Text: Cable unlock on network failure
+        Text: Unlock on network failure
     }
 }
 
@@ -138,7 +166,7 @@ package "Non-Functional Requirements" {
 package "External Interfaces" {
     class "OCPP Interface" as HW <<Interface>> {
         Id: INT-01
-        Text: OCPP Protocol via WebSockets
+        Text: Protocol via WebSockets
     }
     
     class "Payment Interface" as Pay <<Interface>> {
@@ -153,16 +181,16 @@ package "External Interfaces" {
 
     class "Identity Interface" as Auth <<Interface>> {
         Id: INT-04
-        Text: OAuth Providers (Google, Apple, META)
+        Text: OAuth Providers
     }
 
     class "Notification Interface" as Notif <<Interface>> {
         Id: INT-05
-        Text: Email/SMS/Push notifications
+        Text: Email/SMS/Push
     }
 }
 
-' --- Relationships (The Tree Structure) ---
+' --- Relationships ---
 
 ' Main Branches
 Root *-- FuncUser
@@ -204,9 +232,10 @@ Avail *-- A2
 Avail *-- A3
 
 ' Dependencies between FR and NFR
-FR3 ..> S2 : <<requires>>
-FR4 ..> S2 : <<requires>>
-FR4 ..> P1 : <<satisfies>>
-FR2 ..> P3 : <<satisfies>>
+' Using different color for dependencies to make them distinct
+FR3 .[#Red].> S2 : <<requires>>
+FR4 .[#Red].> S2 : <<requires>>
+FR4 .[#Blue].> P1 : <<satisfies>>
+FR2 .[#Blue].> P3 : <<satisfies>>
 
 @enduml
