@@ -1234,7 +1234,6 @@ entity "Location" as location {
   charger_types : array
   icon : string
   icon_type : string
-  id: int
   in_use_station_count: int | null {nullable}
   latitude : double
   longitude : double

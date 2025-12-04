@@ -38,11 +38,11 @@ entity "Location" as location {
   charger_types : array
   icon : string
   icon_type : string
-  id: int
   in_use_station_count: int | null {nullable}
+  is_active : boolean
+  is_fast_charger: boolean
   latitude : double
   longitude : double
-  is_active : boolean
   map_card_logo_url : string
   name : string
   score : float
