@@ -7,20 +7,19 @@ import (
 	"log"
 	"os"
 
-	// REPLACE with your actual import paths
-	"softeng25-42/back-end/internal/repository"
 	"softeng25-42/back-end/internal/models"
+	"softeng25-42/back-end/internal/repository"
 
 	"github.com/lib/pq"
 	"gorm.io/gorm/clause"
 )
 
-// --- Temporary Structs to parse the JSON ---
+// --- JSON Structs for parsing ---
 type JsonOutlet struct {
 	Id        uint     `json:"id"`
 	Connector uint     `json:"connector"`
 	Kilowatts *float64 `json:"kilowatts"`
-	Status    *string  `json:"status"` // Pointer to handle null values
+	Status    *string  `json:"status"`
 }
 
 type JsonStation struct {
