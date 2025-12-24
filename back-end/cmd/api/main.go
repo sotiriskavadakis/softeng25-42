@@ -1,14 +1,19 @@
 package main
 
 import (
+	"log"
 	"softeng25-42/back-end/internal/handlers"
 	"softeng25-42/back-end/internal/repository"
+	"softeng25-42/back-end/internal/services/entsoe"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	repository.Connect()
+
+	// Start Background Service
+	entsoe.StartService(repository.DB)
 
 	// 1. Setup Router with default middleware (Logger, Recovery)
 	r := gin.Default()
@@ -33,6 +38,6 @@ func main() {
 	}
 
 	// 3. Start Server
-	println("API Server starting on :9876...")
+	log.Println("API Server starting on :9876...")
 	r.Run(":9876")
 }

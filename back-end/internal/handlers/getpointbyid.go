@@ -12,13 +12,14 @@ import (
 // Χρησιμοποιούμε το ίδιο struct με το GetPoints για συνέπεια
 // (Αν χρειάζεσαι περισσότερα πεδία για το single point, φτιάξε ένα PointDetailDTO)
 type PointDetailDTO struct {
-	PointID            string `json:"pointid"`
-	Lon                string `json:"lon"`
-	Lat                string `json:"lat"`
-	Status             string `json:"status"`
-	Cap                int    `json:"cap"`
-	ReservationEndTime string `json:"reservationendtime"`
-	KwhPrice           string `json:"kwh_price,omitempty"`
+	PointID            string  `json:"pointid"`
+	Lon                string  `json:"lon"`
+	Lat                string  `json:"lat"`
+	Status             string  `json:"status"`
+	Cap                int     `json:"cap"`
+	ReservationEndTime string  `json:"reservationendtime"`
+	KwhPrice           float64 `json:"kwhprice"`
+	IsManualPrice      bool    `json:"is_manual_price"`
 }
 
 func GetPointByID(c *gin.Context) {
@@ -29,12 +30,14 @@ func GetPointByID(c *gin.Context) {
 
 	// 2. Raw query to get charger with location data
 	var result struct {
-		ChargerID  uint
-		StationID  uint
-		Status     string
-		MaxPowerKw float64
-		Latitude   float64
-		Longitude  float64
+		ChargerID     uint
+		StationID     uint
+		Status        string
+		MaxPowerKw    float64
+		Latitude      float64
+		Longitude     float64
+		KwhPrice      float64
+		IsManualPrice bool
 	}
 
 	err := db.Raw(`
@@ -42,6 +45,8 @@ func GetPointByID(c *gin.Context) {
 			c.charger_id,
 			c.status,
 			c.max_power_kw,
+			c.kwh_price,
+			c.is_manual_price,
 			l.latitude,
 			l.longitude
 		FROM chargers c
@@ -61,7 +66,7 @@ func GetPointByID(c *gin.Context) {
 	}
 
 	// If not reserved, return current time per spec
-	reservationEndTime := time.Now().Format("2006-01-02 15:04:05")
+	reservationEndTime := time.Now().Format("2006-01-02 15:04")
 
 	response := PointDetailDTO{
 		PointID:            fmt.Sprintf("%d", result.ChargerID),
@@ -70,7 +75,8 @@ func GetPointByID(c *gin.Context) {
 		Status:             result.Status,
 		Cap:                int(result.MaxPowerKw),
 		ReservationEndTime: reservationEndTime,
-		KwhPrice:           "0.30",
+		KwhPrice:           result.KwhPrice,
+		IsManualPrice:      result.IsManualPrice,
 	}
 
 	// 5. Return JSON

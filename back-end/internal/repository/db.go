@@ -45,6 +45,8 @@ func Connect() {
 		&models.SavedCard{},
 		&models.Reservation{},
 		&models.ChargingSession{},
+		&models.StatusChange{},
+		&models.ElectricityPrice{},
 	)
 	if err != nil {
 		log.Fatal("Migration Pass 1 failed:", err)
@@ -79,6 +81,8 @@ func Connect() {
 		&models.SavedCard{},
 		&models.Reservation{},
 		&models.ChargingSession{},
+		&models.StatusChange{},
+		&models.ElectricityPrice{},
 	)
 	if err != nil {
 		log.Fatal("Migration Pass 2 failed:", err)

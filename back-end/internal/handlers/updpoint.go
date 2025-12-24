@@ -11,15 +11,17 @@ import (
 
 // UpdatePointRequest - Request body for /updpoint/:id
 type UpdatePointRequest struct {
-	Status   *string  `json:"status"`
-	KwhPrice *float64 `json:"kwhprice"`
+	Status        *string  `json:"status"`
+	KwhPrice      *float64 `json:"kwhprice"`
+	IsManualPrice *bool    `json:"is_manual_price"`
 }
 
 // UpdatePointResponse - Response body for /updpoint/:id
 type UpdatePointResponse struct {
-	PointID  string  `json:"pointid"`
-	Status   string  `json:"status"`
-	KwhPrice float64 `json:"kwhprice"`
+	PointID       string  `json:"pointid"`
+	Status        string  `json:"status"`
+	KwhPrice      float64 `json:"kwhprice"`
+	IsManualPrice bool    `json:"is_manual_price"`
 }
 
 // UpdatePoint handles POST /updpoint/:id
@@ -32,9 +34,9 @@ func UpdatePoint(c *gin.Context) {
 		return
 	}
 
-	// At least one of status or kwhprice must be provided
-	if req.Status == nil && req.KwhPrice == nil {
-		sendError(c, http.StatusBadRequest, "Bad Request", "At least one of 'status' or 'kwhprice' must be provided")
+	// At least one field must be provided
+	if req.Status == nil && req.KwhPrice == nil && req.IsManualPrice == nil {
+		sendError(c, http.StatusBadRequest, "Bad Request", "At least one of 'status', 'kwhprice' or 'is_manual_price' must be provided")
 		return
 	}
 
@@ -62,11 +64,21 @@ func UpdatePoint(c *gin.Context) {
 	// Build update map
 	updates := make(map[string]interface{})
 	oldStatus := string(charger.Status)
+	
 	if req.Status != nil {
 		updates["status"] = *req.Status
 	}
+	
 	if req.KwhPrice != nil {
 		updates["kwh_price"] = *req.KwhPrice
+		// If admin sets a price, we default to manual mode unless they explicitly said otherwise
+		if req.IsManualPrice == nil {
+			updates["is_manual_price"] = true
+		}
+	}
+	
+	if req.IsManualPrice != nil {
+		updates["is_manual_price"] = *req.IsManualPrice
 	}
 
 	// Update charger
@@ -87,8 +99,9 @@ func UpdatePoint(c *gin.Context) {
 	db.First(&charger, "charger_id = ?", pointID)
 
 	c.JSON(http.StatusOK, UpdatePointResponse{
-		PointID:  pointID,
-		Status:   string(charger.Status),
-		KwhPrice: charger.KwhPrice,
+		PointID:       pointID,
+		Status:        string(charger.Status),
+		KwhPrice:      charger.KwhPrice,
+		IsManualPrice: charger.IsManualPrice,
 	})
 }

@@ -8,3 +8,5 @@
 - Back-end functional tests.
 - Back-end unit tests.
 - RESTful API.
+- ENTSO-E Integration for automatic electricity price and load data updates.
+- Background services for hourly charger price synchronization based on spot market prices.
