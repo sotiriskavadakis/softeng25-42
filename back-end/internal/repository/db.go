@@ -16,46 +16,73 @@ var DB *gorm.DB
 var DSN string
 
 func Connect() {
-	// 1. Define your connection string (DSN)
-	// Update these values to match your local Postgres setup
-	DSN = "host=localhost user=postgres password=123 dbname=ev_charging port=5432 sslmode=disable TimeZone=UTC"
+	dsn := "host=localhost user=postgres password=123 dbname=ev_charging port=5432 sslmode=disable TimeZone=UTC"
 
-	// 2. Open the connection
-	var err error
-	DB, err = gorm.Open(postgres.Open(DSN), &gorm.Config{})
+	// ---------------------------------------------------------
+	// PASS 1: Create Tables WITHOUT Foreign Keys
+	// ---------------------------------------------------------
+	// We disable FKs so GORM can create 'stations' and 'chargers' tables
+	// without worrying about which one exists first.
+	// ---------------------------------------------------------
+	log.Println("--- Migration Pass 1: Creating Tables ---")
+	dbNoFK, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true, 
+	})
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		log.Fatal("Failed to connect (Pass 1):", err)
 	}
 
-	// log.Println("Connected to Database!")
-
-	// 3. Run AutoMigrate
-	// This is where the magic happens.
-	// Order matters slightly: Create parents before children if possible,
-	// but GORM is usually smart enough to handle it.
-	// log.Println("Running Migrations...")
-	err = DB.AutoMigrate(
-		// Geography & Infrastructure
+	// Migrate EVERYTHING. GORM will create the tables but skip the FK constraints.
+	err = dbNoFK.AutoMigrate(
 		&models.Region{},
 		&models.County{},
 		&models.Location{},
 		&models.Station{},
 		&models.ChargerType{},
 		&models.Charger{},
-
-		// Users & Finance
 		&models.User{},
 		&models.PaymentMethod{},
 		&models.SavedCard{},
-
-		// Transactions
 		&models.Reservation{},
 		&models.ChargingSession{},
 	)
-
 	if err != nil {
-		log.Fatal("Migration failed:", err)
+		log.Fatal("Migration Pass 1 failed:", err)
 	}
 
-	// log.Println("Database Schema created successfully!")
+	// ---------------------------------------------------------
+	// PASS 2: Add Constraints (Foreign Keys)
+	// ---------------------------------------------------------
+	// Now that tables exist, we reconnect with standard settings.
+	// GORM will see the tables are there but the Constraints are missing,
+	// and it will add them safely.
+	// ---------------------------------------------------------
+	log.Println("--- Migration Pass 2: Adding Constraints ---")
+	
+	// Assign to the global 'DB' variable to be used by the rest of the app
+	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: false, // Default behavior
+	})
+	if err != nil {
+		log.Fatal("Failed to connect (Pass 2):", err)
+	}
+
+	err = DB.AutoMigrate(
+		&models.Region{},
+		&models.County{},
+		&models.Location{},
+		&models.Station{},
+		&models.ChargerType{},
+		&models.Charger{},
+		&models.User{},
+		&models.PaymentMethod{},
+		&models.SavedCard{},
+		&models.Reservation{},
+		&models.ChargingSession{},
+	)
+	if err != nil {
+		log.Fatal("Migration Pass 2 failed:", err)
+	}
+
+	log.Println("✅ Database Schema & Relationships created successfully!")
 }

@@ -140,14 +140,25 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 	for _, locData := range jsonLocations {
 		// Μετατροπή JsonLocation -> models.Location (Ο κώδικάς σου)
 		location := models.Location{
-			ID:            locData.Id,
-			Name:          locData.Name,
-			Address:       locData.Address,
-			Latitude:      locData.Latitude,
-			Longitude:     locData.Longitude,
-			IsFastCharger: locData.IsFastCharger,
-			// ... υπόλοιπα πεδία ...
-			ChargerTypes: pq.StringArray(locData.ConnectorTypes),
+			ID:                    locData.Id,
+			Name:                  locData.Name,
+			Address:               locData.Address,
+			Latitude:              locData.Latitude,
+			Longitude:             locData.Longitude,
+			IsActive:              true,
+			IsFastCharger:         locData.IsFastCharger,
+			UnderRepair:           locData.UnderRepair,
+			ComingSoon:            locData.ComingSoon,
+			Access:                locData.Access,
+			Score:                 locData.Score,
+			Icon:                  locData.Icon,
+			IconType:              locData.IconType,
+			MapCardLogoUrl:        locData.MapCardLogoUrl,
+			Url:                   locData.Url,
+			StationCount:          locData.StationCount,
+			AvailableStationCount: &locData.StationCount,
+			InUseStationCount:     new(int),
+			ChargerTypes:          pq.StringArray(locData.ConnectorTypes),
 		}
 
 		// Χρησιμοποιούμε το 'tx' αντί για 'db' εδώ!
@@ -206,7 +217,6 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 					MaxPowerKw: power,
 				}
 
-
 				if err := tx.Create(&charger).Error; err != nil {
 					tx.Rollback()
 					sendErrorHTTP(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed charger %d", charger.ID))
@@ -216,7 +226,7 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// 5. Commit 
+	// 5. Commit
 	tx.Commit()
 
 	w.Header().Set("Content-Type", "application/json")

@@ -1,31 +1,33 @@
 package models
 
 import (
-	"github.com/lib/pq" // Required for Postgres Arrays
+	"github.com/lib/pq"
 )
 
 type Region struct {
-	Name     string   `gorm:"primaryKey" json:"name"`
-	Counties []County `gorm:"foreignKey:RegionName" json:"counties,omitempty"`
+	Name string `gorm:"primaryKey" json:"name"`
+	// Removed "Counties []County"
 }
 
 type County struct {
 	Name string `gorm:"primaryKey" json:"name"`
 
-	// Changed to pointer to allow NULL
+	// Pointer to allow Null
 	RegionName *string `json:"region_name"`
 
-	Region    Region     `gorm:"foreignKey:RegionName" json:"-"`
-	Locations []Location `gorm:"foreignKey:CountyName" json:"locations,omitempty"`
+	// Belongs To Region (The Parent)
+	Region Region `gorm:"foreignKey:RegionName;references:Name" json:"-"`
+
+	// Removed "Locations []Location"
 }
 
 type Location struct {
 	ID uint `gorm:"primaryKey;column:location_id" json:"id"`
 
-	// Changed to pointer to allow NULL
 	CountyName *string `json:"county_name"`
 
-	County County `gorm:"foreignKey:CountyName" json:"-"`
+	// Belongs To County (The Parent)
+	County County `gorm:"foreignKey:CountyName;references:Name" json:"-"`
 
 	Name    string `json:"name"`
 	Address string `json:"address"`
@@ -34,7 +36,7 @@ type Location struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 
-	// Status & Metadata
+	// Metadata
 	IsActive       bool    `json:"is_active"`
 	IsFastCharger  bool    `json:"is_fast_charger"`
 	UnderRepair    bool    `json:"under_repair"`
@@ -53,17 +55,22 @@ type Location struct {
 
 	ChargerTypes pq.StringArray `gorm:"type:text[]" json:"charger_types"`
 
-	// Relationships
-	Stations []Station `gorm:"foreignKey:LocationID" json:"stations,omitempty"`
+	// Has Many Stations
+	Stations []Station `gorm:"foreignKey:LocationID;references:ID"`
 }
 
 type Station struct {
-	ID         uint   `gorm:"primaryKey;column:station_id" json:"id"`
-	LocationID uint   `json:"location_id"`
+	ID         uint `gorm:"primaryKey;column:station_id" json:"id"`
+	LocationID uint `gorm:"column:location_id" json:"location_id"`
+
+	// Belongs To Location (for reverse lookup) - constraint:- prevents duplicate FK
+	Location Location `gorm:"foreignKey:LocationID;references:ID;constraint:-" json:"-"`
+
 	PhysicalID string `json:"physical_id"`
 	NetworkID  int    `json:"network_id"`
 
-	Chargers []Charger `gorm:"foreignKey:StationID" json:"chargers,omitempty"`
+	// Has Many Chargers
+	Chargers []Charger `gorm:"foreignKey:StationID;references:ID"`
 }
 
 type ChargerType struct {
@@ -74,12 +81,16 @@ type ChargerType struct {
 }
 
 type Charger struct {
-    ID        uint `gorm:"primaryKey;column:charger_id" json:"id"`
-    StationID uint `json:"station_id"`
-    TypeID    uint `gorm:"column:type_id" json:"type_id"`
+	ID uint `gorm:"primaryKey;column:charger_id" json:"id"`
 
-    // Keep strict validation without a custom DB type
-    Status ChargerStatus `gorm:"type:varchar(20);check:status IN ('AVAILABLE', 'OCCUPIED', 'RESERVED', 'FAULTED', 'OFFLINE')" json:"status"`
+	StationID uint `gorm:"column:station_id" json:"station_id"`
 
-    MaxPowerKw float64 `json:"max_power_kw"`
+	// Belongs To Station (for reverse lookup) - constraint:- prevents duplicate FK
+	Station Station `gorm:"foreignKey:StationID;references:ID;constraint:-" json:"-"`
+
+	TypeID uint `gorm:"column:type_id" json:"type_id"`
+
+	Status ChargerStatus `gorm:"type:varchar(20);check:status IN ('AVAILABLE', 'OCCUPIED', 'RESERVED', 'FAULTED', 'OFFLINE')" json:"status"`
+
+	MaxPowerKw float64 `json:"max_power_kw"`
 }

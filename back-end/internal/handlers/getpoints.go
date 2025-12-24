@@ -91,6 +91,12 @@ func GetPoints(c *gin.Context) {
 		}
 	}
 
+	// Check if no points were found
+	if len(responseList) == 0 {
+		c.Status(http.StatusNoContent)
+		return
+	}
+
 	// 4. Αποστολή απάντησης με Gin
 	if strings.ToLower(format) == "csv" {
 		// Return CSV format

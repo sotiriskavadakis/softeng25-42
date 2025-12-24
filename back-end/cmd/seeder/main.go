@@ -56,7 +56,7 @@ func main() {
 	db := repository.DB
 
 	// 2. Open the JSON file
-	jsonFile, err := os.Open("back-end/database/data/parts1234.json")
+	jsonFile, err := os.Open("back-end/data/parts1234.json")
 	if err != nil {
 		log.Fatalf("Error opening JSON file: %v", err)
 	}
@@ -118,7 +118,7 @@ func main() {
 			ChargerTypes:          pq.StringArray(locData.ConnectorTypes),
 		}
 
-		if err := db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&location).Error; err != nil {
+		if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&location).Error; err != nil {
 			log.Printf("Failed to seed Location %d: %v", location.ID, err)
 			continue
 		}
@@ -131,7 +131,7 @@ func main() {
 				NetworkID:  stationData.NetworkId,
 			}
 
-			if err := db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&station).Error; err != nil {
+			if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&station).Error; err != nil {
 				log.Printf("Failed to seed Station %d: %v", station.ID, err)
 				continue
 			}
@@ -171,7 +171,7 @@ func main() {
 					MaxPowerKw: power,
 				}
 
-				if err := db.Clauses(clause.OnConflict{UpdateAll: true}).Create(&charger).Error; err != nil {
+				if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&charger).Error; err != nil {
 					log.Printf("Failed to seed Charger %d: %v", charger.ID, err)
 				}
 			}

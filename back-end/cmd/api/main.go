@@ -23,7 +23,7 @@ func main() {
     api := r.Group("/api")
     {
         api.GET("/points", handlers.GetPoints)
-        api.GET("/point/:pointid", handlers.GetPointByID)
+        api.GET("/point/:id", handlers.GetPointByID)
     }
 
     // 3. Start Server
