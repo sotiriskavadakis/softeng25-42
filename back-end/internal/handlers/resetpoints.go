@@ -191,16 +191,16 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 					power = *outletData.Kilowatts
 				}
 
-				// 2. Handle Status (default to AVAILABLE if null)
+				// 2. Handle Status (default to available if null)
 				var status models.ChargerStatus = models.StatusAvailable
 				if outletData.Status != nil && *outletData.Status != "" {
 					switch *outletData.Status {
 					case "AVAILABLE":
 						status = models.StatusAvailable
 					case "CHARGING":
-						status = models.StatusOccupied
+						status = models.StatusCharging
 					case "UNDER_REPAIR":
-						status = models.StatusFaulted
+						status = models.StatusMalfunction
 					case "UNKNOWN", "OUTOFORDER":
 						status = models.StatusOffline
 					default:

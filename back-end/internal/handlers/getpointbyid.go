@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"softeng25-42/back-end/internal/repository"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,15 +12,13 @@ import (
 // Χρησιμοποιούμε το ίδιο struct με το GetPoints για συνέπεια
 // (Αν χρειάζεσαι περισσότερα πεδία για το single point, φτιάξε ένα PointDetailDTO)
 type PointDetailDTO struct {
-	PointID         string `json:"pointid"`
-	Lon             string `json:"lon"`
-	Lat             string `json:"lat"`
-	Status          string `json:"status"`
-	Cap             int    `json:"cap"`
-	ReservationTime string `json:"reservation_time,omitempty"`
-	KwhPrice        string `json:"kwh_price,omitempty"`
-	// Πρόσθεσε εδώ extra πεδία αν τα ζητάει η εκφώνηση για το single point
-	// π.χ. Address string `json:"address"`
+	PointID            string `json:"pointid"`
+	Lon                string `json:"lon"`
+	Lat                string `json:"lat"`
+	Status             string `json:"status"`
+	Cap                int    `json:"cap"`
+	ReservationEndTime string `json:"reservationendtime"`
+	KwhPrice           string `json:"kwh_price,omitempty"`
 }
 
 func GetPointByID(c *gin.Context) {
@@ -61,14 +60,17 @@ func GetPointByID(c *gin.Context) {
 		return
 	}
 
+	// If not reserved, return current time per spec
+	reservationEndTime := time.Now().Format("2006-01-02 15:04:05")
+
 	response := PointDetailDTO{
-		PointID:         fmt.Sprintf("%d", result.ChargerID),
-		Lon:             fmt.Sprintf("%f", result.Longitude),
-		Lat:             fmt.Sprintf("%f", result.Latitude),
-		Status:          result.Status,
-		Cap:             int(result.MaxPowerKw),
-		ReservationTime: "0",
-		KwhPrice:        "0.30",
+		PointID:            fmt.Sprintf("%d", result.ChargerID),
+		Lon:                fmt.Sprintf("%f", result.Longitude),
+		Lat:                fmt.Sprintf("%f", result.Latitude),
+		Status:             result.Status,
+		Cap:                int(result.MaxPowerKw),
+		ReservationEndTime: reservationEndTime,
+		KwhPrice:           "0.30",
 	}
 
 	// 5. Return JSON
