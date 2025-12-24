@@ -93,4 +93,5 @@ type Charger struct {
 	Status ChargerStatus `gorm:"type:varchar(20);check:status IN ('available', 'charging', 'reserved', 'malfunction', 'offline')" json:"status"`
 
 	MaxPowerKw float64 `json:"max_power_kw"`
+	KwhPrice   float64 `gorm:"column:kwh_price;default:0.30" json:"kwhprice"`
 }

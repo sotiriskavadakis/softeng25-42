@@ -26,6 +26,10 @@ func main() {
 		api.GET("/point/:id", handlers.GetPointByID)
 		api.POST("/reserve/:id", handlers.ReservePoint)
 		api.POST("/reserve/:id/:minutes", handlers.ReservePoint)
+		api.POST("/updpoint/:id", handlers.UpdatePoint)
+		api.POST("/newsession", handlers.NewSession)
+		api.GET("/sessions/:id/:from/:to", handlers.GetSessions)
+		api.GET("/pointstatus/:pointid/:from/:to", handlers.GetPointStatus)
 	}
 
 	// 3. Start Server

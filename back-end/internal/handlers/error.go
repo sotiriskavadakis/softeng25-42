@@ -3,8 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"github.com/gin-gonic/gin"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // Error response body for all API responses as specified in the PDF
@@ -12,7 +13,7 @@ type ErrorLogResponse struct {
 	Call       string `json:"call"`
 	TimeRef    string `json:"timeref"`
 	Originator string `json:"originator"`
-	ReturnCode int    `json:"return code"`
+	ReturnCode int    `json:"return_code"`
 	Error      string `json:"error"`
 	DebugInfo  string `json:"debuginfo"`
 }
@@ -35,15 +36,15 @@ func sendErrorHTTP(w http.ResponseWriter, r *http.Request, code int, errTitle st
 }
 
 func sendError(c *gin.Context, code int, errTitle string, debugInfo string) {
-    errResponse := ErrorLogResponse{
-        Call:       c.Request.URL.String(),
-        TimeRef:    time.Now().Format("2006-01-02 15:04"),
-        Originator: c.ClientIP(), // Gin has a helper for IP!
-        ReturnCode: code,
-        Error:      errTitle,
-        DebugInfo:  debugInfo,
-    }
+	errResponse := ErrorLogResponse{
+		Call:       c.Request.URL.String(),
+		TimeRef:    time.Now().Format("2006-01-02 15:04"),
+		Originator: c.ClientIP(), // Gin has a helper for IP!
+		ReturnCode: code,
+		Error:      errTitle,
+		DebugInfo:  debugInfo,
+	}
 
-    // AbortWithStatusJSON stops the chain and sends the JSON
-    c.AbortWithStatusJSON(code, errResponse)
+	// AbortWithStatusJSON stops the chain and sends the JSON
+	c.AbortWithStatusJSON(code, errResponse)
 }
