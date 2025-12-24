@@ -27,13 +27,13 @@ func Connect() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	log.Println("Connected to Database!")
+	// log.Println("Connected to Database!")
 
 	// 3. Run AutoMigrate
 	// This is where the magic happens.
 	// Order matters slightly: Create parents before children if possible,
 	// but GORM is usually smart enough to handle it.
-	log.Println("Running Migrations...")
+	// log.Println("Running Migrations...")
 	err = DB.AutoMigrate(
 		// Geography & Infrastructure
 		&models.Region{},
@@ -57,5 +57,5 @@ func Connect() {
 		log.Fatal("Migration failed:", err)
 	}
 
-	log.Println("Database Schema created successfully!")
+	// log.Println("Database Schema created successfully!")
 }

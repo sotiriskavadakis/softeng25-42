@@ -25,7 +25,7 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 	// 2. Check Database Connectivity
 	sqlDB, err := db.DB()
 	if err != nil || sqlDB.Ping() != nil {
-		sendError(w, r, 400, "Database connection failed", "Could not ping database")
+		sendErrorHTTP(w, r, 400, "Database connection failed", "Could not ping database")
 		return
 	}
 
@@ -35,14 +35,14 @@ func HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	// Count total points
 	if err := db.Model(&models.Charger{}).Count(&totalCount).Error; err != nil {
-		sendError(w, r, 400, "Database error", err.Error())
+		sendErrorHTTP(w, r, 400, "Database error", err.Error())
 		return
 	}
 
 	// Count offline points (Status = 'offline')
 	// Note: The PDF implies 'online' is everything NOT offline (available, charging, reserved, malfunction)
 	if err := db.Model(&models.Charger{}).Where("status = ?", "OFFLINE").Count(&offlineCount).Error; err != nil {
-		sendError(w, r, 400, "Database error", err.Error())
+		sendErrorHTTP(w, r, 400, "Database error", err.Error())
 		return
 	}
 

@@ -1,0 +1,4 @@
+loc_id,loc_name,address,lat,long,is_fast,charger_types,station_id,network_id,charger_id,type_id,status,power
+10,Athens Mall,Andrea Papandreou 35,38.046,23.792,true,Type-2,100,99,1000,1,AVAILABLE,22.0
+10,Athens Mall,Andrea Papandreou 35,38.046,23.792,true,Type-2,100,99,1001,2,OCCUPIED,50.0
+20,Syntagma Square,Syntagma,37.975,23.735,false,Type-1,200,88,2000,1,OFFLINE,11.0

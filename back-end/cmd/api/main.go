@@ -1,29 +1,32 @@
-package main
+package main 
 
 import (
-	"net/http"
-	"softeng25-42/back-end/internal/handlers"
-	"softeng25-42/back-end/internal/repository"
-    
-    // If using a router like chi or mux:
-    // "github.com/go-chi/chi/v5"
+    "softeng25-42/back-end/internal/handlers"   
+    "softeng25-42/back-end/internal/repository" 
+
+    "github.com/gin-gonic/gin"
 )
 
 func main() {
-    // 1. Connect to DB
     repository.Connect()
 
-    // 2. Setup Router (Using standard net/http for this example)
-    mux := http.NewServeMux()
+    // 1. Setup Router with default middleware (Logger, Recovery)
+    r := gin.Default()
 
-    // 3. Register Endpoint [cite: 34]
-    mux.HandleFunc("/api/admin/healthcheck", handlers.HealthCheck)
-	mux.HandleFunc("/api/admin/resetpoints", handlers.ResetPoints)
-
-    // 4. Start Server on port 9876 [cite: 11]
-    println("Server starting on :9876...")
-    err := http.ListenAndServe(":9876", mux) // Note: PDF asks for HTTPS eventually
-    if err != nil {
-        panic(err)
+    // 2. Route Grouping (Cleaner URL structure)
+    admin := r.Group("/api/admin")
+    {
+        admin.POST("/healthcheck", gin.WrapF(handlers.HealthCheck))
+        admin.POST("/resetpoints", gin.WrapF(handlers.ResetPoints))
+        admin.POST("/addpoints", gin.WrapF(handlers.AddPoints))
     }
+    api := r.Group("/api")
+    {
+        api.GET("/points", handlers.GetPoints)
+        api.GET("/point/:pointid", handlers.GetPointByID)
+    }
+
+    // 3. Start Server
+    println("API Server starting on :9876...")
+    r.Run(":9876")
 }

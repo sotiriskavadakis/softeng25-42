@@ -58,14 +58,14 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 	// 2. Άνοιγμα και Διάβασμα Αρχείου
 	fileData, err := os.ReadFile(jsonFilePath)
 	if err != nil {
-		sendError(w, r, 500, "File Error", "Could not read json file")
+		sendErrorHTTP(w, r, 500, "File Error", "Could not read json file")
 		return
 	}
 
 	// 3. Parsing του JSON (Η λογική από τον Seeder σου)
 	var jsonLocations []JsonLocation // Χρησιμοποιούμε τα structs που όρισες στον seeder
 	if err := json.Unmarshal(fileData, &jsonLocations); err != nil {
-		sendError(w, r, 500, "JSON Error", "Invalid JSON format: "+err.Error())
+		sendErrorHTTP(w, r, 500, "JSON Error", "Invalid JSON format: "+err.Error())
 		return
 	}
 
@@ -81,28 +81,28 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 	// αλλιώς παραβιάζονται τα foreign key constraints.
 	if err := tx.Exec("DELETE FROM charging_sessions").Error; err != nil {
 		tx.Rollback()
-		sendError(w, r, 500, "DB Error", "Failed to clear Sessions")
+		sendErrorHTTP(w, r, 500, "DB Error", "Failed to clear Sessions")
 		return
 	}
 	if err := tx.Exec("DELETE FROM reservations").Error; err != nil {
 		tx.Rollback()
-		sendError(w, r, 500, "DB Error", "Failed to clear Reservations")
+		sendErrorHTTP(w, r, 500, "DB Error", "Failed to clear Reservations")
 		return
 	}
 	// Σβήνουμε με αντίστροφη σειρά (Παιδί -> Γονιός)
 	if err := tx.Exec("DELETE FROM chargers").Error; err != nil {
 		tx.Rollback()
-		sendError(w, r, 500, "DB Error", "Failed to clear Chargers")
+		sendErrorHTTP(w, r, 500, "DB Error", "Failed to clear Chargers")
 		return
 	}
 	if err := tx.Exec("DELETE FROM stations").Error; err != nil {
 		tx.Rollback()
-		sendError(w, r, 500, "DB Error", "Failed to clear Stations")
+		sendErrorHTTP(w, r, 500, "DB Error", "Failed to clear Stations")
 		return
 	}
 	if err := tx.Exec("DELETE FROM locations").Error; err != nil {
 		tx.Rollback()
-		sendError(w, r, 500, "DB Error", "Failed to clear Locations")
+		sendErrorHTTP(w, r, 500, "DB Error", "Failed to clear Locations")
 		return
 	}
 
@@ -129,7 +129,7 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 					// Το 'DoNothing' σημαίνει: Αν υπάρχει ήδη το ID, μην κάνεις error, απλά προχώρα.
 					if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&cType).Error; err != nil {
 						tx.Rollback() // ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ: Ακύρωση όσων διαγραφών κάναμε πιο πριν
-						sendError(w, r, 500, "Database Error", "Failed to seed ChargerTypes: "+err.Error())
+						sendErrorHTTP(w, r, 500, "Database Error", "Failed to seed ChargerTypes: "+err.Error())
 						return
 					}
 				}
@@ -153,7 +153,7 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 		// Χρησιμοποιούμε το 'tx' αντί για 'db' εδώ!
 		if err := tx.Create(&location).Error; err != nil {
 			tx.Rollback()
-			sendError(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed location %d: %v", location.ID, err))
+			sendErrorHTTP(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed location %d: %v", location.ID, err))
 			return
 		}
 
@@ -167,7 +167,7 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 
 			if err := tx.Create(&station).Error; err != nil {
 				tx.Rollback()
-				sendError(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed station %d", station.ID))
+				sendErrorHTTP(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed station %d", station.ID))
 				return
 			}
 
@@ -209,14 +209,14 @@ func ResetPoints(w http.ResponseWriter, r *http.Request) {
 
 				if err := tx.Create(&charger).Error; err != nil {
 					tx.Rollback()
-					sendError(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed charger %d", charger.ID))
+					sendErrorHTTP(w, r, 500, "DB Insert Error", fmt.Sprintf("Failed charger %d", charger.ID))
 					return
 				}
 			}
 		}
 	}
 
-	// 5. Commit και Επιτυχία
+	// 5. Commit 
 	tx.Commit()
 
 	w.Header().Set("Content-Type", "application/json")

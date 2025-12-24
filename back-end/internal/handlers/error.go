@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"github.com/gin-gonic/gin"
 	"time"
 )
 
@@ -17,7 +18,7 @@ type ErrorLogResponse struct {
 }
 
 // Helper to format the Error Log exactly as requested [cite: 31, 42]
-func sendError(w http.ResponseWriter, r *http.Request, code int, errTitle string, debugInfo string) {
+func sendErrorHTTP(w http.ResponseWriter, r *http.Request, code int, errTitle string, debugInfo string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
@@ -31,4 +32,18 @@ func sendError(w http.ResponseWriter, r *http.Request, code int, errTitle string
 	}
 
 	json.NewEncoder(w).Encode(errResponse)
+}
+
+func sendError(c *gin.Context, code int, errTitle string, debugInfo string) {
+    errResponse := ErrorLogResponse{
+        Call:       c.Request.URL.String(),
+        TimeRef:    time.Now().Format("2006-01-02 15:04"),
+        Originator: c.ClientIP(), // Gin has a helper for IP!
+        ReturnCode: code,
+        Error:      errTitle,
+        DebugInfo:  debugInfo,
+    }
+
+    // AbortWithStatusJSON stops the chain and sends the JSON
+    c.AbortWithStatusJSON(code, errResponse)
 }
