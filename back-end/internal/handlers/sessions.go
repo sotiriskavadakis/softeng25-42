@@ -10,18 +10,43 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SessionDTO - Response item for /sessions/:id/:from/:to
+// SessionDTO represents a charging session record
+// @Description Details of a completed charging session including timing, energy, and billing information
 type SessionDTO struct {
-	StartTime string  `json:"starttime"`
-	EndTime   string  `json:"endtime"`
-	StartSoc  int     `json:"startsoc"`
-	EndSoc    int     `json:"endsoc"`
-	TotalKwh  float64 `json:"totalkwh"`
-	KwhPrice  float64 `json:"kwhprice"`
-	Amount    float64 `json:"amount"`
+	// Start time of the charging session (format: YYYY-MM-DD HH:MM)
+	StartTime string `json:"starttime" example:"2025-12-25 10:00"`
+	// End time of the charging session (format: YYYY-MM-DD HH:MM)
+	EndTime string `json:"endtime" example:"2025-12-25 11:30"`
+	// Battery state of charge at session start (percentage 0-100)
+	StartSoc int `json:"startsoc" example:"20"`
+	// Battery state of charge at session end (percentage 0-100)
+	EndSoc int `json:"endsoc" example:"80"`
+	// Total energy delivered during the session in kWh
+	TotalKwh float64 `json:"totalkwh" example:"45.5"`
+	// Price per kWh at the time of the session
+	KwhPrice float64 `json:"kwhprice" example:"0.35"`
+	// Total amount charged for the session in local currency
+	Amount float64 `json:"amount" example:"15.93"`
 }
 
-// GetSessions handles GET /sessions/:id/:from/:to
+// GetSessions godoc
+// @Summary Get charging sessions for a point
+// @Description Retrieves all charging sessions for a specific charging point within a date range.
+// @Description Sessions are ordered by start time in descending order (most recent first).
+// @Description Results can be returned in JSON or CSV format.
+// @Tags Sessions
+// @Accept json
+// @Produce json,text/csv
+// @Param id path string true "Charging Point ID"
+// @Param from path string true "Start date in YYYYMMDD format" example(20251201)
+// @Param to path string true "End date in YYYYMMDD format (inclusive)" example(20251225)
+// @Param format query string false "Response format (json or csv)" default(json)
+// @Success 200 {array} SessionDTO "Successfully retrieved charging sessions"
+// @Success 204 "No Content - No sessions found in the specified date range"
+// @Failure 400 {object} ErrorLogResponse "Bad Request - Invalid date format"
+// @Failure 404 {object} ErrorLogResponse "Not Found - Charging point does not exist"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /sessions/{id}/{from}/{to} [get]
 func GetSessions(c *gin.Context) {
 	pointID := c.Param("id")
 	fromStr := c.Param("from")

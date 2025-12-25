@@ -16,6 +16,42 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+// AddPointsResponse represents the response after importing charging points
+// @Description Response body containing import status and row count
+type AddPointsResponse struct {
+	// Status of the import operation
+	Status string `json:"status" example:"OK"`
+	// Number of rows successfully imported
+	ImportedRows int `json:"imported_rows" example:"150"`
+}
+
+// AddPoints godoc
+// @Summary Import charging points from CSV
+// @Description Imports charging points data from a CSV file. The CSV must contain columns for location,
+// @Description station, and charger information. Existing records are updated (upsert behavior).
+// @Description
+// @Description Required CSV columns:
+// @Description - loc_id: Location ID (required)
+// @Description - loc_name: Location name
+// @Description - address: Location address
+// @Description - lat: Latitude coordinate
+// @Description - long: Longitude coordinate
+// @Description - is_fast: Whether location has fast chargers (boolean)
+// @Description - charger_types: Comma-separated list of charger types
+// @Description - station_id: Station ID
+// @Description - network_id: Network ID
+// @Description - charger_id: Charger ID
+// @Description - type_id: Charger type ID
+// @Description - status: Charger status
+// @Description - power: Maximum power in kW
+// @Tags Admin
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "CSV file containing charging points data"
+// @Success 200 {object} AddPointsResponse "Successfully imported charging points"
+// @Failure 400 {object} ErrorLogResponse "Bad Request - Missing file parameter or invalid CSV format"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Upload error, CSV parsing error, or database error"
+// @Router /addpoints [post]
 func AddPoints(w http.ResponseWriter, r *http.Request) {
 	// 1. Setup (Multipart form parsing...)
 	if err := r.ParseMultipartForm(10 << 20); err != nil {

@@ -9,19 +9,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Χρησιμοποιούμε το ίδιο struct με το GetPoints για συνέπεια
-// (Αν χρειάζεσαι περισσότερα πεδία για το single point, φτιάξε ένα PointDetailDTO)
+// PointDetailDTO represents detailed information about a single charging point
+// @Description Detailed response containing all information about a specific charging point
 type PointDetailDTO struct {
-	PointID            string  `json:"pointid"`
-	Lon                string  `json:"lon"`
-	Lat                string  `json:"lat"`
-	Status             string  `json:"status"`
-	Cap                int     `json:"cap"`
-	ReservationEndTime string  `json:"reservationendtime"`
-	KwhPrice           float64 `json:"kwhprice"`
-	IsManualPrice      bool    `json:"is_manual_price"`
+	// Unique identifier of the charging point
+	PointID string `json:"pointid" example:"123"`
+	// Longitude coordinate of the charging point location
+	Lon string `json:"lon" example:"23.727539"`
+	// Latitude coordinate of the charging point location
+	Lat string `json:"lat" example:"37.983810"`
+	// Current status of the charging point (available, charging, reserved, malfunction, offline)
+	Status string `json:"status" example:"available"`
+	// Maximum charging capacity in kW
+	Cap int `json:"cap" example:"22"`
+	// End time of current reservation (current time if not reserved)
+	ReservationEndTime string `json:"reservationendtime" example:"2025-12-25 14:30"`
+	// Current price per kWh in local currency
+	KwhPrice float64 `json:"kwhprice" example:"0.35"`
+	// Whether the price is manually set or dynamically calculated
+	IsManualPrice bool `json:"is_manual_price" example:"false"`
 }
 
+// GetPointByID godoc
+// @Summary Get charging point by ID
+// @Description Retrieves detailed information about a specific charging point including
+// @Description location coordinates, current status, capacity, pricing, and reservation details.
+// @Tags Points
+// @Accept json
+// @Produce json
+// @Param id path string true "Charging Point ID"
+// @Success 200 {object} PointDetailDTO "Successfully retrieved charging point details"
+// @Failure 404 {object} ErrorLogResponse "Not Found - Charging point does not exist"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /getpoint/{id} [get]
 func GetPointByID(c *gin.Context) {
 	// 1. Λήψη του ID από το URL
 	pointID := c.Param("id")

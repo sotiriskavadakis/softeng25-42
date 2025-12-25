@@ -9,22 +9,45 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// UpdatePointRequest - Request body for /updpoint/:id
+// UpdatePointRequest represents the request body for updating a charging point
+// @Description Request body for updating charging point properties
 type UpdatePointRequest struct {
-	Status        *string  `json:"status"`
-	KwhPrice      *float64 `json:"kwhprice"`
-	IsManualPrice *bool    `json:"is_manual_price"`
+	// Status of the charging point (available, charging, reserved, malfunction, offline)
+	Status *string `json:"status" example:"available"`
+	// Price per kWh in the local currency
+	KwhPrice *float64 `json:"kwhprice" example:"0.35"`
+	// Whether the price is manually set or dynamically calculated
+	IsManualPrice *bool `json:"is_manual_price" example:"true"`
 }
 
-// UpdatePointResponse - Response body for /updpoint/:id
+// UpdatePointResponse represents the response after updating a charging point
+// @Description Response body containing the updated charging point details
 type UpdatePointResponse struct {
-	PointID       string  `json:"pointid"`
-	Status        string  `json:"status"`
-	KwhPrice      float64 `json:"kwhprice"`
-	IsManualPrice bool    `json:"is_manual_price"`
+	// Unique identifier of the charging point
+	PointID string `json:"pointid" example:"123"`
+	// Current status of the charging point
+	Status string `json:"status" example:"available"`
+	// Current price per kWh
+	KwhPrice float64 `json:"kwhprice" example:"0.35"`
+	// Indicates if the price is manually set
+	IsManualPrice bool `json:"is_manual_price" example:"true"`
 }
 
-// UpdatePoint handles POST /updpoint/:id
+// UpdatePoint godoc
+// @Summary Update a charging point
+// @Description Updates the properties of a specific charging point including status, price, and pricing mode.
+// @Description At least one field (status, kwhprice, or is_manual_price) must be provided.
+// @Description When setting kwhprice without specifying is_manual_price, it defaults to manual pricing mode.
+// @Tags Points
+// @Accept json
+// @Produce json
+// @Param id path string true "Charging Point ID"
+// @Param request body UpdatePointRequest true "Update request body"
+// @Success 200 {object} UpdatePointResponse "Successfully updated charging point"
+// @Failure 400 {object} ErrorLogResponse "Bad Request - Invalid input or missing required fields"
+// @Failure 404 {object} ErrorLogResponse "Not Found - Charging point does not exist"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /updpoint/{id} [post]
 func UpdatePoint(c *gin.Context) {
 	pointID := c.Param("id")
 
@@ -64,11 +87,11 @@ func UpdatePoint(c *gin.Context) {
 	// Build update map
 	updates := make(map[string]interface{})
 	oldStatus := string(charger.Status)
-	
+
 	if req.Status != nil {
 		updates["status"] = *req.Status
 	}
-	
+
 	if req.KwhPrice != nil {
 		updates["kwh_price"] = *req.KwhPrice
 		// If admin sets a price, we default to manual mode unless they explicitly said otherwise
@@ -76,7 +99,7 @@ func UpdatePoint(c *gin.Context) {
 			updates["is_manual_price"] = true
 		}
 	}
-	
+
 	if req.IsManualPrice != nil {
 		updates["is_manual_price"] = *req.IsManualPrice
 	}

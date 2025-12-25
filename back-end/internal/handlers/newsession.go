@@ -8,19 +8,40 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// NewSessionRequest - Request body for /newsession
+// NewSessionRequest represents the request body for creating a new charging session
+// @Description Request body containing all details of a completed charging session
 type NewSessionRequest struct {
-	PointID   string  `json:"pointid" binding:"required"`
-	StartTime string  `json:"starttime" binding:"required"`
-	EndTime   string  `json:"endtime" binding:"required"`
-	StartSoc  int     `json:"startsoc" binding:"required"`
-	EndSoc    int     `json:"endsoc" binding:"required"`
-	TotalKwh  float64 `json:"totalkwh" binding:"required"`
-	KwhPrice  float64 `json:"kwhprice" binding:"required"`
-	Amount    float64 `json:"amount" binding:"required"`
+	// ID of the charging point where the session occurred
+	PointID string `json:"pointid" binding:"required" example:"123"`
+	// Session start time in format 'YYYY-MM-DD HH:MM'
+	StartTime string `json:"starttime" binding:"required" example:"2025-12-25 10:00"`
+	// Session end time in format 'YYYY-MM-DD HH:MM'
+	EndTime string `json:"endtime" binding:"required" example:"2025-12-25 11:30"`
+	// Battery state of charge at session start (percentage 0-100)
+	StartSoc int `json:"startsoc" binding:"required" example:"20"`
+	// Battery state of charge at session end (percentage 0-100)
+	EndSoc int `json:"endsoc" binding:"required" example:"80"`
+	// Total energy delivered during the session in kWh
+	TotalKwh float64 `json:"totalkwh" binding:"required" example:"45.5"`
+	// Price per kWh at the time of the session
+	KwhPrice float64 `json:"kwhprice" binding:"required" example:"0.35"`
+	// Total amount charged for the session in local currency
+	Amount float64 `json:"amount" binding:"required" example:"15.93"`
 }
 
-// NewSession handles POST /newsession
+// NewSession godoc
+// @Summary Create a new charging session
+// @Description Records a new completed charging session with all relevant details including
+// @Description start/end times, energy delivered, state of charge changes, and billing information.
+// @Tags Sessions
+// @Accept json
+// @Produce json
+// @Param request body NewSessionRequest true "Charging session details"
+// @Success 200 "Successfully created charging session (empty body)"
+// @Failure 400 {object} ErrorLogResponse "Bad Request - Missing required fields or invalid timestamp format"
+// @Failure 404 {object} ErrorLogResponse "Not Found - Charging point does not exist"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /newsession [post]
 func NewSession(c *gin.Context) {
 	var req NewSessionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

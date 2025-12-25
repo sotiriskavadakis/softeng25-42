@@ -8,14 +8,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Error response body for all API responses as specified in the PDF
+// ErrorLogResponse represents the standard error response format for all API errors
+// @Description Standard error response body containing details about the error occurrence
 type ErrorLogResponse struct {
-	Call       string `json:"call"`
-	TimeRef    string `json:"timeref"`
-	Originator string `json:"originator"`
-	ReturnCode int    `json:"return_code"`
-	Error      string `json:"error"`
-	DebugInfo  string `json:"debuginfo"`
+	// The API endpoint/URL that was called
+	Call string `json:"call" example:"/getpoint/123"`
+	// Timestamp when the error occurred (format: YYYY-MM-DD HH:MM)
+	TimeRef string `json:"timeref" example:"2025-12-25 14:30"`
+	// IP address or identifier of the request originator
+	Originator string `json:"originator" example:"192.168.1.100"`
+	// HTTP status code returned
+	ReturnCode int `json:"return_code" example:"404"`
+	// Short error title/description
+	Error string `json:"error" example:"Not Found"`
+	// Detailed debug information about the error
+	DebugInfo string `json:"debuginfo" example:"Point with ID 123 not found"`
 }
 
 // Helper to format the Error Log exactly as requested [cite: 31, 42]

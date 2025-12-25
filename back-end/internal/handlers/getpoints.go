@@ -14,15 +14,41 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// PointVague represents a summary view of a charging point
+// @Description Summary information about a charging point for list views
 type PointVague struct {
-	ProviderName string `json:"providerΝame"`
-	PointID      string `json:"pointid"`
-	Long         string `json:"lon"`
-	Lat          string `json:"lat"`
-	Status       string `json:"status"`
-	Cap          int    `json:"cap"`
+	// Name of the charging network provider
+	ProviderName string `json:"providerΝame" example:"EMPower"`
+	// Unique identifier of the charging point
+	PointID string `json:"pointid" example:"123"`
+	// Longitude coordinate of the charging point
+	Long string `json:"lon" example:"23.727539"`
+	// Latitude coordinate of the charging point
+	Lat string `json:"lat" example:"37.983810"`
+	// Current status of the charging point
+	Status string `json:"status" example:"available"`
+	// Maximum charging capacity in kW
+	Cap int `json:"cap" example:"22"`
 }
 
+// GetPoints godoc
+// @Summary Get all charging points
+// @Description Retrieves a list of all charging points with optional filtering by status and geographic bounds.
+// @Description Results can be returned in JSON or CSV format.
+// @Tags Points
+// @Accept json
+// @Produce json,text/csv
+// @Param status query string false "Filter by status (available, occupied, reserved, faulted, offline)"
+// @Param format query string false "Response format (json or csv)" default(json)
+// @Param min_lat query number false "Minimum latitude for geographic filtering"
+// @Param max_lat query number false "Maximum latitude for geographic filtering"
+// @Param min_lon query number false "Minimum longitude for geographic filtering"
+// @Param max_lon query number false "Maximum longitude for geographic filtering"
+// @Success 200 {array} PointVague "Successfully retrieved list of charging points"
+// @Success 204 "No Content - No charging points found matching the criteria"
+// @Failure 401 {object} ErrorLogResponse "Invalid Status - Unrecognized status value"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /getpoints [get]
 func GetPoints(c *gin.Context) {
 	// 1. Gin Helper: Τραβάει το query param ?status=... πολύ εύκολα
 	// Αν δεν υπάρχει, επιστρέφει κενό string ""

@@ -12,19 +12,42 @@ import (
 )
 
 const (
+	// DefaultReservationMinutes is the default reservation duration if not specified
 	DefaultReservationMinutes = 30
-	MaxReservationMinutes     = 60
-	MinReservationMinutes     = 15
+	// MaxReservationMinutes is the maximum allowed reservation duration
+	MaxReservationMinutes = 60
+	// MinReservationMinutes is the minimum allowed reservation duration
+	MinReservationMinutes = 15
 )
 
-// ReserveResponseDTO - Response format per API spec
+// ReserveResponseDTO represents the response after a reservation attempt
+// @Description Response containing the result of a reservation request
 type ReserveResponseDTO struct {
-	PointID            string `json:"pointid"`
-	Status             string `json:"status"`
-	ReservationEndTime string `json:"reservationendtime"`
+	// ID of the charging point
+	PointID string `json:"pointid" example:"123"`
+	// Result status: 'reserved' if successful, 'not_found' if point doesn't exist,
+	// or current status if point is not available for reservation
+	Status string `json:"status" example:"reserved"`
+	// End time of the reservation (format: YYYY-MM-DD HH:MM), or '1970-01-01 00:00' if reservation failed
+	ReservationEndTime string `json:"reservationendtime" example:"2025-12-25 15:00"`
 }
 
-// ReservePoint handles POST /reserve/:id and /reserve/:id/:minutes
+// ReservePoint godoc
+// @Summary Reserve a charging point
+// @Description Attempts to reserve a charging point for a specified duration.
+// @Description The reservation duration must be between 15 and 60 minutes (defaults to 30 if not specified).
+// @Description Only 'available' charging points can be reserved.
+// @Description The operation is atomic and uses row-level locking to prevent race conditions.
+// @Tags Reservations
+// @Accept json
+// @Produce json
+// @Param id path string true "Charging Point ID"
+// @Param minutes path int false "Reservation duration in minutes (15-60, default: 30)"
+// @Success 200 {object} ReserveResponseDTO "Reservation result (check status field for success/failure reason)"
+// @Failure 400 {object} ErrorLogResponse "Bad Request - Invalid point ID"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /reserve/{id} [post]
+// @Router /reserve/{id}/{minutes} [post]
 func ReservePoint(c *gin.Context) {
 	// 1. Parse point ID
 	pointIDStr := c.Param("id")

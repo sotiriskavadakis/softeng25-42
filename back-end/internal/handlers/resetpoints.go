@@ -13,44 +13,94 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// This api handler follows the logic of the seeder to reset the points in the database
+// ResetPointsResponse represents the response after resetting charging points
+// @Description Response confirming successful reset of charging points data
+type ResetPointsResponse struct {
+	// Status of the reset operation
+	Status string `json:"status" example:"OK"`
+}
 
-// --- JSON Structs for parsing (copied from seeder) ---
+// JsonOutlet represents an outlet/charger in the seed JSON file
+// @Description Internal structure for parsing charger data from JSON seed file
 type JsonOutlet struct {
-	Id        uint     `json:"id"`
-	Connector uint     `json:"connector"`
+	// Unique identifier for the outlet
+	Id uint `json:"id"`
+	// Connector type ID
+	Connector uint `json:"connector"`
+	// Maximum power output in kW (nullable)
 	Kilowatts *float64 `json:"kilowatts"`
-	Status    *string  `json:"status"`
+	// Current status (nullable)
+	Status *string `json:"status"`
 }
 
+// JsonStation represents a station in the seed JSON file
+// @Description Internal structure for parsing station data from JSON seed file
 type JsonStation struct {
-	Id        uint         `json:"id"`
-	NetworkId int          `json:"network_id"`
-	Outlets   []JsonOutlet `json:"outlets"`
+	// Unique identifier for the station
+	Id uint `json:"id"`
+	// Network identifier
+	NetworkId int `json:"network_id"`
+	// List of outlets/chargers at this station
+	Outlets []JsonOutlet `json:"outlets"`
 }
 
+// JsonLocation represents a location in the seed JSON file
+// @Description Internal structure for parsing location data from JSON seed file
 type JsonLocation struct {
-	Id                    uint          `json:"id"`
-	Name                  string        `json:"name"`
-	Address               string        `json:"address"`
-	Latitude              float64       `json:"latitude"`
-	Longitude             float64       `json:"longitude"`
-	IsFastCharger         bool          `json:"is_fast_charger"`
-	UnderRepair           bool          `json:"under_repair"`
-	ComingSoon            bool          `json:"coming_soon"`
-	Access                int           `json:"access"`
-	Score                 float64       `json:"score"`
-	Icon                  string        `json:"icon"`
-	IconType              string        `json:"icon_type"`
-	MapCardLogoUrl        string        `json:"map_card_logo_url"`
-	Url                   string        `json:"url"`
-	StationCount          int           `json:"station_count"`
-	AvailableStationCount *int          `json:"available_station_count"`
-	InUseStationCount     *int          `json:"in_use_station_count"`
-	ConnectorTypes        []string      `json:"connector_types"`
-	Stations              []JsonStation `json:"stations"`
+	// Unique identifier for the location
+	Id uint `json:"id"`
+	// Location name
+	Name string `json:"name"`
+	// Physical address
+	Address string `json:"address"`
+	// GPS latitude coordinate
+	Latitude float64 `json:"latitude"`
+	// GPS longitude coordinate
+	Longitude float64 `json:"longitude"`
+	// Whether location has fast chargers
+	IsFastCharger bool `json:"is_fast_charger"`
+	// Whether location is under repair
+	UnderRepair bool `json:"under_repair"`
+	// Whether location is coming soon
+	ComingSoon bool `json:"coming_soon"`
+	// Access type identifier
+	Access int `json:"access"`
+	// Location score/rating
+	Score float64 `json:"score"`
+	// Icon identifier
+	Icon string `json:"icon"`
+	// Icon type
+	IconType string `json:"icon_type"`
+	// URL to map card logo
+	MapCardLogoUrl string `json:"map_card_logo_url"`
+	// URL to location page
+	Url string `json:"url"`
+	// Total number of stations
+	StationCount int `json:"station_count"`
+	// Number of available stations (nullable)
+	AvailableStationCount *int `json:"available_station_count"`
+	// Number of stations in use (nullable)
+	InUseStationCount *int `json:"in_use_station_count"`
+	// List of connector types available
+	ConnectorTypes []string `json:"connector_types"`
+	// List of stations at this location
+	Stations []JsonStation `json:"stations"`
 }
 
+// ResetPoints godoc
+// @Summary Reset all charging points to initial state
+// @Description Performs a complete reset of the charging points database by:
+// @Description 1. Deleting all existing charging sessions, reservations, chargers, stations, and locations
+// @Description 2. Re-importing all data from the seed JSON file (data/parts1234.json)
+// @Description
+// @Description This operation is atomic - if any step fails, all changes are rolled back.
+// @Description Use with caution as this will delete all existing session and reservation data.
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Success 200 {object} ResetPointsResponse "Successfully reset all charging points"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - File read error, JSON parsing error, or database error"
+// @Router /resetpoints [post]
 func ResetPoints(w http.ResponseWriter, r *http.Request) {
 	// 1. Hardwired Path για το JSON αρχείο
 	const jsonFilePath = "data/parts1234.json"

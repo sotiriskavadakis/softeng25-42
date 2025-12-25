@@ -10,14 +10,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// StatusChangeDTO - Response item for /pointstatus/:pointid/:from/:to
+// StatusChangeDTO represents a single status change event for a charging point
+// @Description Record of a status change event including timestamp and state transition
 type StatusChangeDTO struct {
-	TimeRef  string `json:"timeref"`
-	OldState string `json:"old_state"`
-	NewState string `json:"new_state"`
+	// Timestamp when the status change occurred (format: YYYY-MM-DD HH:MM)
+	TimeRef string `json:"timeref" example:"2025-12-25 14:30"`
+	// Previous status before the change
+	OldState string `json:"old_state" example:"available"`
+	// New status after the change
+	NewState string `json:"new_state" example:"charging"`
 }
 
-// GetPointStatus handles GET /pointstatus/:pointid/:from/:to
+// GetPointStatus godoc
+// @Summary Get status change history for a charging point
+// @Description Retrieves the history of status changes for a specific charging point within a date range.
+// @Description Status changes are logged whenever a point transitions between states (e.g., available → charging).
+// @Description Results can be returned in JSON or CSV format.
+// @Tags Points
+// @Accept json
+// @Produce json,text/csv
+// @Param pointid path string true "Charging Point ID"
+// @Param from path string true "Start date in YYYYMMDD format" example(20251201)
+// @Param to path string true "End date in YYYYMMDD format (inclusive)" example(20251225)
+// @Param format query string false "Response format (json or csv)" default(json)
+// @Success 200 {array} StatusChangeDTO "Successfully retrieved status change history"
+// @Success 204 "No Content - No status changes found in the specified date range"
+// @Failure 400 {object} ErrorLogResponse "Bad Request - Invalid date format"
+// @Failure 404 {object} ErrorLogResponse "Not Found - Charging point does not exist"
+// @Failure 500 {object} ErrorLogResponse "Internal Server Error - Database error"
+// @Router /pointstatus/{pointid}/{from}/{to} [get]
 func GetPointStatus(c *gin.Context) {
 	pointID := c.Param("pointid")
 	fromStr := c.Param("from")

@@ -9,6 +9,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @title EV Charging API
+// @version 1.0
+// @description API for managing electric vehicle charging points
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
 	repository.Connect()
 
