@@ -30,6 +30,11 @@ func main() {
 		admin.POST("/resetpoints", gin.WrapF(handlers.ResetPoints))
 		admin.POST("/addpoints", gin.WrapF(handlers.AddPoints))
 	}
+	auth := r.Group("/api/auth")
+	{
+		auth.POST("/register", handlers.Register)
+		auth.POST("/login", handlers.Login)
+	}
 	api := r.Group("/api")
 	{
 		api.GET("/points", handlers.GetPoints)
