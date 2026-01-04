@@ -27,8 +27,11 @@ func main() {
 	admin := r.Group("/api/admin")
 	{
 		admin.GET("/healthcheck", gin.WrapF(handlers.HealthCheck))
-		admin.POST("/resetpoints", gin.WrapF(handlers.ResetPoints))
-		admin.POST("/addpoints", gin.WrapF(handlers.AddPoints))
+
+		adminProtected := admin.Group("")
+		adminProtected.Use(handlers.AuthRequired())
+		adminProtected.POST("/resetpoints", gin.WrapF(handlers.ResetPoints))
+		adminProtected.POST("/addpoints", gin.WrapF(handlers.AddPoints))
 	}
 	auth := r.Group("/api/auth")
 	{
@@ -39,12 +42,15 @@ func main() {
 	{
 		api.GET("/points", handlers.GetPoints)
 		api.GET("/point/:id", handlers.GetPointByID)
-		api.POST("/reserve/:id", handlers.ReservePoint)
-		api.POST("/reserve/:id/:minutes", handlers.ReservePoint)
-		api.POST("/updpoint/:id", handlers.UpdatePoint)
-		api.POST("/newsession", handlers.NewSession)
-		api.GET("/sessions/:id/:from/:to", handlers.GetSessions)
 		api.GET("/pointstatus/:pointid/:from/:to", handlers.GetPointStatus)
+
+		apiProtected := api.Group("")
+		apiProtected.Use(handlers.AuthRequired())
+		apiProtected.POST("/reserve/:id", handlers.ReservePoint)
+		apiProtected.POST("/reserve/:id/:minutes", handlers.ReservePoint)
+		apiProtected.POST("/updpoint/:id", handlers.UpdatePoint)
+		apiProtected.POST("/newsession", handlers.NewSession)
+		apiProtected.GET("/sessions/:id/:from/:to", handlers.GetSessions)
 	}
 
 	// 3. Start Server
