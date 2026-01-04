@@ -1,13 +1,51 @@
 package main
 
 import (
+	"bufio"
 	"log"
+	"os"
 	"softeng25-42/back-end/internal/handlers"
 	"softeng25-42/back-end/internal/repository"
 	"softeng25-42/back-end/internal/services/entsoe"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+func loadDotEnv(paths ...string) {
+	for _, p := range paths {
+		f, err := os.Open(p)
+		if err != nil {
+			continue
+		}
+
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+
+			idx := strings.Index(line, "=")
+			if idx <= 0 {
+				continue
+			}
+
+			key := strings.TrimSpace(line[:idx])
+			val := strings.TrimSpace(line[idx+1:])
+			val = strings.Trim(val, "\"'")
+			if key == "" {
+				continue
+			}
+
+			if os.Getenv(key) == "" {
+				_ = os.Setenv(key, val)
+			}
+		}
+
+		_ = f.Close()
+	}
+}
 
 // @title EV Charging API
 // @version 1.0
@@ -15,6 +53,9 @@ import (
 // @host localhost:8080
 // @BasePath /api/v1
 func main() {
+	// Load environment variables from .env if present (so JWT_SECRET works without manual export)
+	loadDotEnv(".env", "back-end/.env")
+
 	repository.Connect()
 
 	// Start Background Service
