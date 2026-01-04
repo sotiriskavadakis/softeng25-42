@@ -90,11 +90,11 @@ type Charger struct {
 
 	TypeID uint `gorm:"column:type_id" json:"type_id"`
 
-	Status ChargerStatus `gorm:"type:varchar(20);check:status IN ('available', 'charging', 'reserved', 'malfunction', 'offline')" json:"status"`
+	Status ChargerStatus `gorm:"type:varchar(20);check:status IN ('AVAILABLE', 'OCCUPIED', 'RESERVED', 'FAULTED', 'OFFLINE')" json:"status"`
 
 	MaxPowerKw float64 `json:"max_power_kw"`
 	KwhPrice   float64 `gorm:"column:kwh_price;default:0.30" json:"kwhprice"`
-	
+
 	// If true, the price is not updated automatically by the background service
 	IsManualPrice bool `gorm:"column:is_manual_price;default:false" json:"is_manual_price"`
 }

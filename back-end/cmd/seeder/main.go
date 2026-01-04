@@ -78,9 +78,22 @@ func main() {
 			for _, outletData := range stationData.Outlets {
 				if !seenTypes[outletData.Connector] {
 					seenTypes[outletData.Connector] = true
+					var name string
+					switch outletData.Connector {
+					case 2: name = "J-1772"
+					case 3: name = "CHAdeMO"
+					case 7: name = "Type 2"
+					case 8: name = "Type 3"
+					case 10: name = "Wall (Euro)"
+					case 13: name = "CCS1"
+					case 14: name = "Caravan Mains Socket"
+					case 15: name = "Three Phase EU"
+					case 20: name = "CCS2"
+					case 24: name = "Type 3A"
+					}
 					cType := models.ChargerType{
 						ID:   outletData.Connector,
-						Name: fmt.Sprintf("Type-%d", outletData.Connector),
+						Name: name,
 					}
 					if err := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&cType).Error; err != nil {
 						log.Printf("Note: ChargerType %d may already exist or failed: %v", cType.ID, err)
