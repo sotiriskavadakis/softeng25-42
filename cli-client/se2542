@@ -1,0 +1,560 @@
+#!/usr/bin/env python3
+import argparse
+import requests
+import os
+
+BASE_URL = "http://localhost:9876/api"
+TOKEN_FILE = os.path.expanduser("~/.se2542_token")
+
+def get_saved_token():
+    """Διαβάζει το αποθηκευμένο token από το αρχείο"""
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, 'r') as f:
+            return f.read().strip()
+    return None
+
+def save_token(token):
+    """Αποθηκεύει το token στο αρχείο"""
+    with open(TOKEN_FILE, 'w') as f:
+        f.write(token)
+    os.chmod(TOKEN_FILE, 0o600)  # Μόνο ο χρήστης μπορεί να διαβάσει
+
+def delete_token():
+    """Διαγράφει το αποθηκευμένο token"""
+    if os.path.exists(TOKEN_FILE):
+        os.remove(TOKEN_FILE)
+
+def get_token(args):
+    """Επιστρέφει token από args ή από αρχείο"""
+    if hasattr(args, 'token') and args.token:
+        return args.token
+    return get_saved_token()
+
+def login(args):
+    """Σύνδεση χρήστη και αποθήκευση token"""
+    url = f"{BASE_URL}/auth/login"
+    
+    data = {
+        'email': args.email,
+        'password': args.password
+    }
+    
+    try:
+        response = requests.post(url, json=data)
+        
+        if response.status_code == 200:
+            result = response.json()
+            token = result.get('token')
+            if token:
+                save_token(token)
+                print("Επιτυχής σύνδεση! Το token αποθηκεύτηκε.")
+            else:
+                print("Σφάλμα: Δεν ελήφθη token")
+        elif response.status_code == 401:
+            print("Σφάλμα: Λάθος email ή κωδικός")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def logout(args):
+    """Αποσύνδεση - διαγραφή του αποθηκευμένου token"""
+    delete_token()
+    print("Αποσυνδεθήκατε επιτυχώς.")
+
+def get_points(args):
+    """Λήψη όλων των σημείων φόρτισης"""
+    url = f"{BASE_URL}/points"
+    params = {}
+    
+    if args.status:
+        params['status'] = args.status
+    if args.format:
+        params['format'] = args.format
+    if args.min_lat:
+        params['min_lat'] = args.min_lat
+    if args.max_lat:
+        params['max_lat'] = args.max_lat
+    if args.min_lon:
+        params['min_lon'] = args.min_lon
+    if args.max_lon:
+        params['max_lon'] = args.max_lon
+    
+    try:
+        response = requests.get(url, params=params)
+        
+        if response.status_code == 200:
+            points = response.json()
+            if not points:
+                print("Δεν βρέθηκαν σημεία φόρτισης.")
+                return
+            
+            print(f"{'ID':<10} {'Provider':<15} {'Status':<12} {'Cap (kW)':<10} {'Lat':<12} {'Lon':<12}")
+            print("-" * 75)
+            for point in points:
+                print(f"{point.get('pointid', 'N/A'):<10} "
+                      f"{point.get('providerΝame', 'N/A'):<15} "
+                      f"{point.get('status', 'N/A'):<12} "
+                      f"{point.get('cap', 'N/A'):<10} "
+                      f"{point.get('lat', 'N/A'):<12} "
+                      f"{point.get('lon', 'N/A'):<12}")
+        elif response.status_code == 204:
+            print("Δεν βρέθηκαν σημεία φόρτισης με τα συγκεκριμένα κριτήρια.")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def healthcheck(args):
+    """Έλεγχος κατάστασης του API"""
+    url = f"{BASE_URL}/admin/healthcheck"
+    
+    try:
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("=== Health Check ===")
+            print(f"Status:                  {data.get('status', 'N/A')}")
+            print(f"DB Connection:           {data.get('dbconnection', 'N/A')}")
+            print(f"Σύνολο σημείων:          {data.get('n_charge_points', 'N/A')}")
+            print(f"Σημεία Online:           {data.get('n_charge_points_online', 'N/A')}")
+            print(f"Σημεία Offline:          {data.get('n_charge_points_offline', 'N/A')}")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def resetpoints(args):
+    """Επαναφορά σημείων φόρτισης στην αρχική κατάσταση"""
+    url = f"{BASE_URL}/admin/resetpoints"
+    
+    token = get_token(args)
+    if not token:
+        print("Σφάλμα: Δεν είστε συνδεδεμένοι. Χρησιμοποιήστε 'se2542 login' ή την παράμετρο --token")
+        return
+    
+    headers = {'Authorization': f'Bearer {token}'}
+    
+    try:
+        response = requests.post(url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("=== Reset Points ===")
+            print(f"Status: {data.get('status', 'N/A')}")
+            print("Η επαναφορά των σημείων φόρτισης ολοκληρώθηκε επιτυχώς.")
+        elif response.status_code == 401:
+            print("Σφάλμα: Μη εξουσιοδοτημένη πρόσβαση. Παρακαλώ δώστε έγκυρο token με --token")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def getpoint(args):
+    """Λήψη λεπτομερειών για ένα συγκεκριμένο σημείο φόρτισης"""
+    url = f"{BASE_URL}/point/{args.id}"
+    
+    try:
+        response = requests.get(url)
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("=== Point Details ===")
+            print(f"Point ID:             {data.get('pointid', 'N/A')}")
+            print(f"Status:               {data.get('status', 'N/A')}")
+            print(f"Capacity (kW):        {data.get('cap', 'N/A')}")
+            print(f"Latitude:             {data.get('lat', 'N/A')}")
+            print(f"Longitude:            {data.get('lon', 'N/A')}")
+            print(f"Τιμή kWh:             {data.get('kwhprice', 'N/A')} €")
+            print(f"Χειροκίνητη τιμή:     {'Ναι' if data.get('is_manual_price') else 'Όχι'}")
+            print(f"Λήξη κράτησης:        {data.get('reservationendtime', 'N/A')}")
+        elif response.status_code == 404:
+            print(f"Σφάλμα: Το σημείο με ID '{args.id}' δεν βρέθηκε.")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def reserve(args):
+    """Κράτηση σημείου φόρτισης"""
+    # Δημιουργία URL με ή χωρίς minutes
+    if args.minutes:
+        url = f"{BASE_URL}/reserve/{args.id}/{args.minutes}"
+    else:
+        url = f"{BASE_URL}/reserve/{args.id}"
+    
+    token = get_token(args)
+    if not token:
+        print("Σφάλμα: Δεν είστε συνδεδεμένοι. Χρησιμοποιήστε 'se2542 login' ή την παράμετρο --token")
+        return
+    
+    headers = {'Authorization': f'Bearer {token}'}
+    
+    try:
+        response = requests.post(url, headers=headers)
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("=== Reservation ===")
+            print(f"Point ID:             {data.get('pointid', 'N/A')}")
+            print(f"Status:               {data.get('status', 'N/A')}")
+            print(f"Λήξη κράτησης:        {data.get('reservationendtime', 'N/A')}")
+            
+            if data.get('status') == 'reserved':
+                print("Η κράτηση ολοκληρώθηκε επιτυχώς!")
+            else:
+                print(f"Η κράτηση απέτυχε. Το σημείο είναι: {data.get('status', 'N/A')}")
+        elif response.status_code == 401:
+            print("Σφάλμα: Μη εξουσιοδοτημένη πρόσβαση. Παρακαλώ δώστε έγκυρο token με --token")
+        elif response.status_code == 400:
+            print(f"Σφάλμα: Μη έγκυρο ID - {response.text}")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def updpoint(args):
+    """Ενημέρωση σημείου φόρτισης (status ή/και τιμή)"""
+    url = f"{BASE_URL}/updpoint/{args.id}"
+    
+    # Έλεγχος ότι τουλάχιστον μία παράμετρος δόθηκε
+    if args.status is None and args.price is None:
+        print("Σφάλμα: Πρέπει να δώσετε τουλάχιστον --status ή --price")
+        return
+    
+    token = get_token(args)
+    if not token:
+        print("Σφάλμα: Δεν είστε συνδεδεμένοι. Χρησιμοποιήστε 'se2542 login' ή την παράμετρο --token")
+        return
+    
+    headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
+    
+    # Δημιουργία request body
+    data = {}
+    if args.status:
+        data['status'] = args.status
+    if args.price is not None:
+        data['kwhprice'] = args.price
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            result = response.json()
+            print("=== Update Point ===")
+            print(f"Point ID:             {result.get('pointid', 'N/A')}")
+            print(f"Status:               {result.get('status', 'N/A')}")
+            print(f"Τιμή kWh:             {result.get('kwhprice', 'N/A')} €")
+            print(f"Χειροκίνητη τιμή:     {'Ναι' if result.get('is_manual_price') else 'Όχι'}")
+            print("Η ενημέρωση ολοκληρώθηκε επιτυχώς!")
+        elif response.status_code == 401:
+            print("Σφάλμα: Μη εξουσιοδοτημένη πρόσβαση. Παρακαλώ δώστε έγκυρο token με --token")
+        elif response.status_code == 404:
+            print(f"Σφάλμα: Το σημείο με ID '{args.id}' δεν βρέθηκε.")
+        elif response.status_code == 400:
+            print(f"Σφάλμα: Μη έγκυρα δεδομένα - {response.text}")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def addpoints(args):
+    """Εισαγωγή νέων σημείων φόρτισης από CSV αρχείο"""
+    url = f"{BASE_URL}/admin/addpoints"
+    
+    # Έλεγχος αν το αρχείο υπάρχει
+    if not os.path.exists(args.source):
+        print(f"Σφάλμα: Το αρχείο '{args.source}' δεν βρέθηκε.")
+        return
+    
+    token = get_token(args)
+    if not token:
+        print("Σφάλμα: Δεν είστε συνδεδεμένοι. Χρησιμοποιήστε 'se2542 login' ή την παράμετρο --token")
+        return
+    
+    headers = {'Authorization': f'Bearer {token}'}
+    
+    try:
+        with open(args.source, 'rb') as f:
+            files = {'file': (os.path.basename(args.source), f, 'text/csv')}
+            response = requests.post(url, headers=headers, files=files)
+        
+        if response.status_code == 200:
+            data = response.json()
+            print("=== Add Points ===")
+            print(f"Status: {data.get('status', 'N/A')}")
+            print(f"Εισήχθησαν γραμμές: {data.get('imported_rows', 'N/A')}")
+            print("Η εισαγωγή σημείων φόρτισης ολοκληρώθηκε επιτυχώς.")
+        elif response.status_code == 401:
+            print("Σφάλμα: Μη εξουσιοδοτημένη πρόσβαση. Παρακαλώ δώστε έγκυρο token με --token")
+        elif response.status_code == 400:
+            print(f"Σφάλμα: Λανθασμένη μορφή αρχείου - {response.text}")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def newsession(args):
+    """Δημιουργία νέας συνεδρίας φόρτισης"""
+    url = f"{BASE_URL}/newsession"
+    
+    token = get_token(args)
+    if not token:
+        print("Σφάλμα: Δεν είστε συνδεδεμένοι. Χρησιμοποιήστε 'se2542 login' ή την παράμετρο --token")
+        return
+    
+    headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {token}'}
+    
+    data = {
+        'pointid': args.id,
+        'starttime': args.starttime,
+        'endtime': args.endtime,
+        'startsoc': args.startsoc,
+        'endsoc': args.endsoc,
+        'totalkwh': args.totalkwh,
+        'kwhprice': args.kwhprice,
+        'amount': args.amount
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        
+        if response.status_code == 200:
+            print("=== New Session ===")
+            print("Η συνεδρία φόρτισης καταχωρήθηκε επιτυχώς!")
+            print(f"Point ID:    {args.id}")
+            print(f"Έναρξη:      {args.starttime}")
+            print(f"Λήξη:        {args.endtime}")
+            print(f"SOC:         {args.startsoc}% -> {args.endsoc}%")
+            print(f"kWh:         {args.totalkwh}")
+            print(f"Τιμή/kWh:    {args.kwhprice} €")
+            print(f"Σύνολο:      {args.amount} €")
+        elif response.status_code == 401:
+            print("Σφάλμα: Μη εξουσιοδοτημένη πρόσβαση. Παρακαλώ δώστε έγκυρο token με --token")
+        elif response.status_code == 404:
+            print(f"Σφάλμα: Το σημείο με ID '{args.id}' δεν βρέθηκε.")
+        elif response.status_code == 400:
+            print(f"Σφάλμα: Μη έγκυρα δεδομένα - {response.text}")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def getsessions(args):
+    """Λήψη συνεδριών φόρτισης για συγκεκριμένο σημείο"""
+    url = f"{BASE_URL}/sessions/{args.id}/{args.datefrom}/{args.dateto}"
+    
+    params = {}
+    if args.format:
+        params['format'] = args.format
+    
+    token = get_token(args)
+    if not token:
+        print("Σφάλμα: Δεν είστε συνδεδεμένοι. Χρησιμοποιήστε 'se2542 login' ή την παράμετρο --token")
+        return
+    
+    headers = {'Authorization': f'Bearer {token}'}
+    
+    try:
+        response = requests.get(url, params=params, headers=headers)
+        
+        if response.status_code == 200:
+            # Έλεγχος αν είναι CSV
+            if args.format == 'csv':
+                print(response.text)
+            else:
+                sessions = response.json()
+                print(f"=== Sessions για Point {args.id} ===")
+                print(f"Περίοδος: {args.datefrom} - {args.dateto}")
+                print(f"Βρέθηκαν {len(sessions)} συνεδρίες\n")
+                
+                print(f"{'Έναρξη':<18} {'Λήξη':<18} {'SOC':<10} {'kWh':<8} {'Τιμή/kWh':<10} {'Ποσό':<8}")
+                print("-" * 75)
+                for s in sessions:
+                    soc = f"{s.get('startsoc', 'N/A')}%->{s.get('endsoc', 'N/A')}%"
+                    print(f"{s.get('starttime', 'N/A'):<18} "
+                          f"{s.get('endtime', 'N/A'):<18} "
+                          f"{soc:<10} "
+                          f"{s.get('totalkwh', 'N/A'):<8} "
+                          f"{s.get('kwhprice', 'N/A'):<10} "
+                          f"{s.get('amount', 'N/A'):<8}")
+        elif response.status_code == 204:
+            print(f"Δεν βρέθηκαν συνεδρίες για το σημείο {args.id} στην περίοδο {args.datefrom} - {args.dateto}")
+        elif response.status_code == 401:
+            print("Σφάλμα: Μη εξουσιοδοτημένη πρόσβαση. Παρακαλώ δώστε έγκυρο token με --token")
+        elif response.status_code == 404:
+            print(f"Σφάλμα: Το σημείο με ID '{args.id}' δεν βρέθηκε.")
+        elif response.status_code == 400:
+            print(f"Σφάλμα: Μη έγκυρη μορφή ημερομηνίας. Χρησιμοποιήστε YYYYMMDD")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def pointstatus(args):
+    """Λήψη ιστορικού αλλαγών κατάστασης σημείου φόρτισης"""
+    url = f"{BASE_URL}/pointstatus/{args.id}/{args.datefrom}/{args.dateto}"
+    
+    params = {}
+    if args.format:
+        params['format'] = args.format
+    
+    try:
+        response = requests.get(url, params=params)
+        
+        if response.status_code == 200:
+            # Έλεγχος αν είναι CSV
+            if args.format == 'csv':
+                print(response.text)
+            else:
+                changes = response.json()
+                print(f"=== Status History για Point {args.id} ===")
+                print(f"Περίοδος: {args.datefrom} - {args.dateto}")
+                print(f"Βρέθηκαν {len(changes)} αλλαγές\n")
+                
+                print(f"{'Ημερομηνία/Ώρα':<20} {'Προηγ. Κατάσταση':<18} {'Νέα Κατάσταση':<18}")
+                print("-" * 60)
+                for ch in changes:
+                    print(f"{ch.get('timeref', 'N/A'):<20} "
+                          f"{ch.get('old_state', 'N/A'):<18} "
+                          f"{ch.get('new_state', 'N/A'):<18}")
+        elif response.status_code == 204:
+            print(f"Δεν βρέθηκαν αλλαγές κατάστασης για το σημείο {args.id} στην περίοδο {args.datefrom} - {args.dateto}")
+        elif response.status_code == 404:
+            print(f"Σφάλμα: Το σημείο με ID '{args.id}' δεν βρέθηκε.")
+        elif response.status_code == 400:
+            print(f"Σφάλμα: Μη έγκυρη μορφή ημερομηνίας. Χρησιμοποιήστε YYYYMMDD")
+        else:
+            print(f"Σφάλμα: {response.status_code} - {response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Σφάλμα: Δεν είναι δυνατή η σύνδεση με τον server. Βεβαιωθείτε ότι τρέχει στο localhost:9876")
+    except Exception as e:
+        print(f"Σφάλμα: {e}")
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='se2542',
+        description="CLI για EV Charging API - Ομάδα softeng25-42"
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Διαθέσιμες εντολές")
+    
+    # Subparser για login
+    login_parser = subparsers.add_parser("login", help="Σύνδεση χρήστη")
+    login_parser.add_argument("--email", type=str, required=True, help="Email χρήστη")
+    login_parser.add_argument("--password", type=str, required=True, help="Κωδικός πρόσβασης")
+    login_parser.set_defaults(func=login)
+    
+    # Subparser για logout
+    logout_parser = subparsers.add_parser("logout", help="Αποσύνδεση χρήστη")
+    logout_parser.set_defaults(func=logout)
+    
+    # Subparser για getpoints
+    points_parser = subparsers.add_parser("getpoints", help="Λήψη σημείων φόρτισης")
+    points_parser.add_argument("--status", type=str, 
+                               choices=["available", "occupied", "reserved", "faulted", "offline"],
+                               help="Φιλτράρισμα με βάση την κατάσταση")
+    points_parser.add_argument("--format", type=str, choices=["json", "csv"], default="csv",
+                               help="Μορφή εξόδου (json ή csv, προεπιλογή: csv)")
+    points_parser.add_argument("--min-lat", dest="min_lat", type=float, help="Ελάχιστο γεωγραφικό πλάτος")
+    points_parser.add_argument("--max-lat", dest="max_lat", type=float, help="Μέγιστο γεωγραφικό πλάτος")
+    points_parser.add_argument("--min-lon", dest="min_lon", type=float, help="Ελάχιστο γεωγραφικό μήκος")
+    points_parser.add_argument("--max-lon", dest="max_lon", type=float, help="Μέγιστο γεωγραφικό μήκος")
+    points_parser.set_defaults(func=get_points)
+    
+    # Subparser για getpoint (by ID)
+    point_parser = subparsers.add_parser("getpoint", help="Λήψη λεπτομερειών σημείου με ID")
+    point_parser.add_argument("--id", type=str, required=True, help="ID του σημείου φόρτισης")
+    point_parser.set_defaults(func=getpoint)
+    
+    # Subparser για healthcheck
+    health_parser = subparsers.add_parser("healthcheck", help="Έλεγχος κατάστασης του API")
+    health_parser.set_defaults(func=healthcheck)
+    
+    # Subparser για resetpoints
+    reset_parser = subparsers.add_parser("resetpoints", help="Επαναφορά σημείων φόρτισης (απαιτεί authentication)")
+    reset_parser.add_argument("--token", type=str, help="JWT token για authentication")
+    reset_parser.set_defaults(func=resetpoints)
+    
+    # Subparser για addpoints
+    add_parser = subparsers.add_parser("addpoints", help="Εισαγωγή σημείων φόρτισης από CSV (απαιτεί authentication)")
+    add_parser.add_argument("--source", type=str, required=True, help="Όνομα αρχείου CSV με δεδομένα σημείων")
+    add_parser.add_argument("--token", type=str, help="JWT token για authentication")
+    add_parser.set_defaults(func=addpoints)
+    
+    # Subparser για reserve
+    reserve_parser = subparsers.add_parser("reserve", help="Κράτηση σημείου φόρτισης (απαιτεί authentication)")
+    reserve_parser.add_argument("--id", type=str, required=True, help="ID του σημείου φόρτισης")
+    reserve_parser.add_argument("--minutes", type=int, help="Διάρκεια κράτησης σε λεπτά (15-60, προεπιλογή: 30)")
+    reserve_parser.add_argument("--token", type=str, help="JWT token για authentication")
+    reserve_parser.set_defaults(func=reserve)
+    
+    # Subparser για updpoint
+    upd_parser = subparsers.add_parser("updpoint", help="Ενημέρωση σημείου φόρτισης (απαιτεί authentication)")
+    upd_parser.add_argument("--id", type=str, required=True, help="ID του σημείου φόρτισης")
+    upd_parser.add_argument("--status", type=str, 
+                            choices=["available", "charging", "reserved", "malfunction", "offline"],
+                            help="Νέα κατάσταση του σημείου")
+    upd_parser.add_argument("--price", type=float, help="Νέα τιμή kWh (σε €)")
+    upd_parser.add_argument("--token", type=str, help="JWT token για authentication")
+    upd_parser.set_defaults(func=updpoint)
+    
+    # Subparser για newsession
+    session_parser = subparsers.add_parser("newsession", help="Καταχώρηση νέας συνεδρίας φόρτισης (απαιτεί authentication)")
+    session_parser.add_argument("--id", type=str, required=True, help="ID του σημείου φόρτισης")
+    session_parser.add_argument("--starttime", type=str, required=True, help="Ώρα έναρξης (π.χ. '2025-12-25 10:00')")
+    session_parser.add_argument("--endtime", type=str, required=True, help="Ώρα λήξης (π.χ. '2025-12-25 11:30')")
+    session_parser.add_argument("--startsoc", type=int, required=True, help="Ποσοστό μπαταρίας στην έναρξη (0-100)")
+    session_parser.add_argument("--endsoc", type=int, required=True, help="Ποσοστό μπαταρίας στη λήξη (0-100)")
+    session_parser.add_argument("--totalkwh", type=float, required=True, help="Συνολικά kWh που παραδόθηκαν")
+    session_parser.add_argument("--kwhprice", type=float, required=True, help="Τιμή ανά kWh (σε €)")
+    session_parser.add_argument("--amount", type=float, required=True, help="Συνολικό ποσό (σε €)")
+    session_parser.add_argument("--token", type=str, help="JWT token για authentication")
+    session_parser.set_defaults(func=newsession)
+    
+    # Subparser για sessions (get)
+    getsessions_parser = subparsers.add_parser("sessions", help="Λήψη συνεδριών φόρτισης (απαιτεί authentication)")
+    getsessions_parser.add_argument("--id", type=str, required=True, help="ID του σημείου φόρτισης")
+    getsessions_parser.add_argument("--from", dest="datefrom", type=str, required=True, help="Ημερομηνία έναρξης (μορφή: YYYYMMDD)")
+    getsessions_parser.add_argument("--to", dest="dateto", type=str, required=True, help="Ημερομηνία λήξης (μορφή: YYYYMMDD)")
+    getsessions_parser.add_argument("--format", type=str, choices=["json", "csv"], default="csv", help="Μορφή εξόδου (json ή csv, προεπιλογή: csv)")
+    getsessions_parser.add_argument("--token", type=str, help="JWT token για authentication")
+    getsessions_parser.set_defaults(func=getsessions)
+    
+    # Subparser για pointstatus
+    status_parser = subparsers.add_parser("pointstatus", help="Λήψη ιστορικού αλλαγών κατάστασης σημείου")
+    status_parser.add_argument("--id", type=str, required=True, help="ID του σημείου φόρτισης")
+    status_parser.add_argument("--from", dest="datefrom", type=str, required=True, help="Ημερομηνία έναρξης (μορφή: YYYYMMDD)")
+    status_parser.add_argument("--to", dest="dateto", type=str, required=True, help="Ημερομηνία λήξης (μορφή: YYYYMMDD)")
+    status_parser.add_argument("--format", type=str, choices=["json", "csv"], default="csv", help="Μορφή εξόδου (json ή csv, προεπιλογή: csv)")
+    status_parser.set_defaults(func=pointstatus)
+    
+    args = parser.parse_args()
+    
+    if args.command:
+        args.func(args)
+    else:
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()

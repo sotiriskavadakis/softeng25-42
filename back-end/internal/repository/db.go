@@ -17,6 +17,7 @@ var DSN string
 
 func Connect() {
 	dsn := "host=localhost user=postgres password=123 dbname=ev_charging port=5432 sslmode=disable TimeZone=UTC"
+	DSN = dsn // Store for healthcheck display
 
 	// ---------------------------------------------------------
 	// PASS 1: Create Tables WITHOUT Foreign Keys
@@ -26,7 +27,7 @@ func Connect() {
 	// ---------------------------------------------------------
 	log.Println("--- Migration Pass 1: Creating Tables ---")
 	dbNoFK, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		DisableForeignKeyConstraintWhenMigrating: true, 
+		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		log.Fatal("Failed to connect (Pass 1):", err)
@@ -60,7 +61,7 @@ func Connect() {
 	// and it will add them safely.
 	// ---------------------------------------------------------
 	log.Println("--- Migration Pass 2: Adding Constraints ---")
-	
+
 	// Assign to the global 'DB' variable to be used by the rest of the app
 	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: false, // Default behavior
