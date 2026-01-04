@@ -24,6 +24,12 @@ func main() {
 	r := gin.Default()
 
 	// 2. Route Grouping (Cleaner URL structure)
+	auth := r.Group("/api/auth")
+	{
+		auth.POST("/register", handlers.Register)
+		auth.POST("/login", handlers.Login)
+	}
+
 	admin := r.Group("/api/admin")
 	{
 		admin.GET("/healthcheck", gin.WrapF(handlers.HealthCheck))
@@ -32,11 +38,6 @@ func main() {
 		adminProtected.Use(handlers.AuthRequired())
 		adminProtected.POST("/resetpoints", gin.WrapF(handlers.ResetPoints))
 		adminProtected.POST("/addpoints", gin.WrapF(handlers.AddPoints))
-	}
-	auth := r.Group("/api/auth")
-	{
-		auth.POST("/register", handlers.Register)
-		auth.POST("/login", handlers.Login)
 	}
 	api := r.Group("/api")
 	{
