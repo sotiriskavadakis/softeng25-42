@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"softeng25-42/back-end/internal/models"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -47,8 +48,8 @@ func StartService(db *gorm.DB) {
 		// Initial sync
 		sync(db)
 
-		// Check every minute to ensure we catch the hour change quickly
-		ticker := time.NewTicker(1 * time.Minute)
+		// Sync once per day
+		ticker := time.NewTicker(24 * time.Hour)
 		defer ticker.Stop()
 
 		for range ticker.C {
@@ -59,7 +60,7 @@ func StartService(db *gorm.DB) {
 
 func sync(db *gorm.DB) {
 	now := time.Now().UTC()
-	
+
 	// 1. Fetch Tomorrow's prices (if it's a new day or missing)
 	// Simple strategy: Always try to fetch today and tomorrow. API is fast enough.
 	// This covers "midnight update" and "system restart".
@@ -73,9 +74,9 @@ func sync(db *gorm.DB) {
 func fetchPrices(db *gorm.DB, targetDate time.Time) {
 	start := time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(), 0, 0, 0, 0, time.UTC)
 	end := start.Add(24 * time.Hour)
-	
+
 	url := fmt.Sprintf("%s?securityToken=%s&documentType=%s&in_Domain=%s&out_Domain=%s&periodStart=%s&periodEnd=%s",
-		BaseURL, SecurityToken, DocTypePrices, AreaCodePrices, AreaCodePrices, 
+		BaseURL, SecurityToken, DocTypePrices, AreaCodePrices, AreaCodePrices,
 		start.Format("200601021504"), end.Format("200601021504"))
 
 	resp, err := http.Get(url)
@@ -101,13 +102,13 @@ func fetchPrices(db *gorm.DB, targetDate time.Time) {
 			baseTime, _ := time.Parse("2006-01-02T15:04Z", p.TimeInterval.Start)
 			// Assuming PT60M for simplicity as per requirements (hourly)
 			// If resolution varies, add logic back. But usually it's hourly for day-ahead.
-			
+
 			for _, pt := range p.Points {
 				t := baseTime.Add(time.Duration(pt.Position-1) * time.Hour)
 				prices = append(prices, models.ElectricityPrice{
-					Timestamp: t,
-					Price:     pt.PriceAmount,
-					AreaCode:  AreaCodePrices,
+					Timestamp:  t,
+					Price:      pt.PriceAmount,
+					AreaCode:   AreaCodePrices,
 					Resolution: "PT60M",
 				})
 			}
@@ -127,7 +128,7 @@ func updateChargers(db *gorm.DB) {
 	var price models.ElectricityPrice
 	if err := db.Where("timestamp = ? AND area_code = ?", currentHour, AreaCodePrices).First(&price).Error; err != nil {
 		// No price found for this hour (maybe API failed), do nothing.
-		return 
+		return
 	}
 
 	// Convert EUR/MWh -> EUR/kWh
@@ -136,6 +137,6 @@ func updateChargers(db *gorm.DB) {
 	db.Model(&models.Charger{}).
 		Where("is_manual_price = ?", false).
 		Update("kwh_price", kwhPrice)
-		
+
 	log.Printf("Chargers updated to %.4f EUR/kWh", kwhPrice)
 }
