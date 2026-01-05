@@ -57,7 +57,14 @@ func ReservePoint(c *gin.Context) {
 		return
 	}
 
-	// 2. Parse minutes (default 30, max 60, min 15)
+	// 2. Get user ID from auth context (set by AuthRequired middleware)
+	userID, exists := c.Get("authUserID")
+	if !exists {
+		sendError(c, http.StatusUnauthorized, "Unauthorized", "User ID not found in token")
+		return
+	}
+
+	// 3. Parse minutes (default 30, max 60, min 15)
 	minutes := DefaultReservationMinutes
 	minutesStr := c.Param("minutes")
 	if minutesStr != "" {
@@ -77,7 +84,7 @@ func ReservePoint(c *gin.Context) {
 
 	db := repository.DB
 
-	// 3. Check if charger exists and is available (with transaction for atomicity)
+	// 4. Check if charger exists and is available (with transaction for atomicity)
 	tx := db.Begin()
 	if tx.Error != nil {
 		sendError(c, http.StatusInternalServerError, "Database Error", tx.Error.Error())
@@ -119,11 +126,11 @@ func ReservePoint(c *gin.Context) {
 		return
 	}
 
-	// 4. Calculate reservation end time
+	// 5. Calculate reservation end time
 	now := time.Now()
 	endTime := now.Add(time.Duration(minutes) * time.Minute)
 
-	// 5. Update charger status to RESERVED
+	// 6. Update charger status to RESERVED
 	if err := tx.Exec(`
 		UPDATE chargers 
 		SET status = ? 
@@ -134,23 +141,23 @@ func ReservePoint(c *gin.Context) {
 		return
 	}
 
-	// 6. Create reservation record (without user_id until auth is implemented)
+	// 7. Create reservation record with user ID from auth token
 	if err := tx.Exec(`
-		INSERT INTO reservations (charger_id, start_time, duration_minutes)
-		VALUES (?, ?, ?)
-	`, pointID, now, minutes).Error; err != nil {
+		INSERT INTO reservations (charger_id, usr_id, start_time, duration_minutes)
+		VALUES (?, ?, ?, ?)
+	`, pointID, userID, now, minutes).Error; err != nil {
 		tx.Rollback()
 		sendError(c, http.StatusInternalServerError, "Database Error", err.Error())
 		return
 	}
 
-	// 7. Commit transaction
+	// 8. Commit transaction
 	if err := tx.Commit().Error; err != nil {
 		sendError(c, http.StatusInternalServerError, "Database Error", err.Error())
 		return
 	}
 
-	// 8. Return success response
+	// 9. Return success response
 	c.JSON(http.StatusOK, ReserveResponseDTO{
 		PointID:            fmt.Sprintf("%d", pointID),
 		Status:             "reserved",
