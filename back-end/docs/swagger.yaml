@@ -1,749 +1,1725 @@
-basePath: /api/v1
-definitions:
-  handlers.AddPointsResponse:
-    description: Response body containing import status and row count
-    properties:
-      imported_rows:
-        description: Number of rows successfully imported
-        example: 150
-        type: integer
-      status:
-        description: Status of the import operation
-        example: OK
-        type: string
-    type: object
-  handlers.ErrorLogResponse:
-    description: Standard error response body containing details about the error occurrence
-    properties:
-      call:
-        description: The API endpoint/URL that was called
-        example: /getpoint/123
-        type: string
-      debuginfo:
-        description: Detailed debug information about the error
-        example: Point with ID 123 not found
-        type: string
-      error:
-        description: Short error title/description
-        example: Not Found
-        type: string
-      originator:
-        description: IP address or identifier of the request originator
-        example: 192.168.1.100
-        type: string
-      return_code:
-        description: HTTP status code returned
-        example: 404
-        type: integer
-      timeref:
-        description: 'Timestamp when the error occurred (format: YYYY-MM-DD HH:MM)'
-        example: 2025-12-25 14:30
-        type: string
-    type: object
-  handlers.HealthCheckResponse:
-    description: Response containing system health information and charging point
-      statistics
-    properties:
-      dbconnection:
-        description: Database connection string (DSN)
-        example: postgres://user:***@localhost:5432/evcharging
-        type: string
-      n_charge_points:
-        description: Total number of charging points in the system
-        example: 1500
-        type: integer
-      n_charge_points_offline:
-        description: Number of offline charging points
-        example: 80
-        type: integer
-      n_charge_points_online:
-        description: Number of online charging points (available, charging, reserved,
-          malfunction)
-        example: 1420
-        type: integer
-      status:
-        description: Overall system status (OK if healthy)
-        example: OK
-        type: string
-    type: object
-  handlers.NewSessionRequest:
-    description: Request body containing all details of a completed charging session
-    properties:
-      amount:
-        description: Total amount charged for the session in local currency
-        example: 15.93
-        type: number
-      endsoc:
-        description: Battery state of charge at session end (percentage 0-100)
-        example: 80
-        type: integer
-      endtime:
-        description: Session end time in format 'YYYY-MM-DD HH:MM'
-        example: 2025-12-25 11:30
-        type: string
-      kwhprice:
-        description: Price per kWh at the time of the session
-        example: 0.35
-        type: number
-      pointid:
-        description: ID of the charging point where the session occurred
-        example: "123"
-        type: string
-      startsoc:
-        description: Battery state of charge at session start (percentage 0-100)
-        example: 20
-        type: integer
-      starttime:
-        description: Session start time in format 'YYYY-MM-DD HH:MM'
-        example: 2025-12-25 10:00
-        type: string
-      totalkwh:
-        description: Total energy delivered during the session in kWh
-        example: 45.5
-        type: number
-    required:
-    - amount
-    - endsoc
-    - endtime
-    - kwhprice
-    - pointid
-    - startsoc
-    - starttime
-    - totalkwh
-    type: object
-  handlers.PointDetailDTO:
-    description: Detailed response containing all information about a specific charging
-      point
-    properties:
-      cap:
-        description: Maximum charging capacity in kW
-        example: 22
-        type: integer
-      is_manual_price:
-        description: Whether the price is manually set or dynamically calculated
-        example: false
-        type: boolean
-      kwhprice:
-        description: Current price per kWh in local currency
-        example: 0.35
-        type: number
-      lat:
-        description: Latitude coordinate of the charging point location
-        example: "37.983810"
-        type: string
-      lon:
-        description: Longitude coordinate of the charging point location
-        example: "23.727539"
-        type: string
-      pointid:
-        description: Unique identifier of the charging point
-        example: "123"
-        type: string
-      reservationendtime:
-        description: End time of current reservation (current time if not reserved)
-        example: 2025-12-25 14:30
-        type: string
-      status:
-        description: Current status of the charging point (available, charging, reserved,
-          malfunction, offline)
-        example: available
-        type: string
-    type: object
-  handlers.PointVague:
-    description: Summary information about a charging point for list views
-    properties:
-      cap:
-        description: Maximum charging capacity in kW
-        example: 22
-        type: integer
-      lat:
-        description: Latitude coordinate of the charging point
-        example: "37.983810"
-        type: string
-      lon:
-        description: Longitude coordinate of the charging point
-        example: "23.727539"
-        type: string
-      pointid:
-        description: Unique identifier of the charging point
-        example: "123"
-        type: string
-      providerΝame:
-        description: Name of the charging network provider
-        example: EMPower
-        type: string
-      status:
-        description: Current status of the charging point
-        example: available
-        type: string
-    type: object
-  handlers.ReserveResponseDTO:
-    description: Response containing the result of a reservation request
-    properties:
-      pointid:
-        description: ID of the charging point
-        example: "123"
-        type: string
-      reservationendtime:
-        description: 'End time of the reservation (format: YYYY-MM-DD HH:MM), or ''1970-01-01
-          00:00'' if reservation failed'
-        example: 2025-12-25 15:00
-        type: string
-      status:
-        description: |-
-          Result status: 'reserved' if successful, 'not_found' if point doesn't exist,
-          or current status if point is not available for reservation
-        example: reserved
-        type: string
-    type: object
-  handlers.ResetPointsResponse:
-    description: Response confirming successful reset of charging points data
-    properties:
-      status:
-        description: Status of the reset operation
-        example: OK
-        type: string
-    type: object
-  handlers.SessionDTO:
-    description: Details of a completed charging session including timing, energy,
-      and billing information
-    properties:
-      amount:
-        description: Total amount charged for the session in local currency
-        example: 15.93
-        type: number
-      endsoc:
-        description: Battery state of charge at session end (percentage 0-100)
-        example: 80
-        type: integer
-      endtime:
-        description: 'End time of the charging session (format: YYYY-MM-DD HH:MM)'
-        example: 2025-12-25 11:30
-        type: string
-      kwhprice:
-        description: Price per kWh at the time of the session
-        example: 0.35
-        type: number
-      startsoc:
-        description: Battery state of charge at session start (percentage 0-100)
-        example: 20
-        type: integer
-      starttime:
-        description: 'Start time of the charging session (format: YYYY-MM-DD HH:MM)'
-        example: 2025-12-25 10:00
-        type: string
-      totalkwh:
-        description: Total energy delivered during the session in kWh
-        example: 45.5
-        type: number
-    type: object
-  handlers.StatusChangeDTO:
-    description: Record of a status change event including timestamp and state transition
-    properties:
-      new_state:
-        description: New status after the change
-        example: charging
-        type: string
-      old_state:
-        description: Previous status before the change
-        example: available
-        type: string
-      timeref:
-        description: 'Timestamp when the status change occurred (format: YYYY-MM-DD
-          HH:MM)'
-        example: 2025-12-25 14:30
-        type: string
-    type: object
-  handlers.UpdatePointRequest:
-    description: Request body for updating charging point properties
-    properties:
-      is_manual_price:
-        description: Whether the price is manually set or dynamically calculated
-        example: true
-        type: boolean
-      kwhprice:
-        description: Price per kWh in the local currency
-        example: 0.35
-        type: number
-      status:
-        description: Status of the charging point (available, charging, reserved,
-          malfunction, offline)
-        example: available
-        type: string
-    type: object
-  handlers.UpdatePointResponse:
-    description: Response body containing the updated charging point details
-    properties:
-      is_manual_price:
-        description: Indicates if the price is manually set
-        example: true
-        type: boolean
-      kwhprice:
-        description: Current price per kWh
-        example: 0.35
-        type: number
-      pointid:
-        description: Unique identifier of the charging point
-        example: "123"
-        type: string
-      status:
-        description: Current status of the charging point
-        example: available
-        type: string
-    type: object
-host: localhost:8080
+openapi: 3.0.0
 info:
-  contact: {}
-  description: API for managing electric vehicle charging points
-  title: EV Charging API
-  version: "1.0"
-paths:
-  /addpoints:
-    post:
-      consumes:
-      - multipart/form-data
-      description: |-
-        Imports charging points data from a CSV file. The CSV must contain columns for location,
-        station, and charger information. Existing records are updated (upsert behavior).
+  title: EV Charging Network API
+  version: 1.0.0
+  description: |
+    # Comprehensive REST API for EV Charging Station Management
+    
+    ## Overview
+    
+    The EV Charging Network API provides complete management and monitoring of electric vehicle charging stations.
+    It enables user authentication, charging point discovery, reservations, session tracking, and administrative operations.
+    
+    ## Core Features
+    
+    ### 🔐 Authentication & Authorization
+    - **JWT-based authentication** with 24-hour token validity
+    - **Role-based access control** for different user types
+    - **Secure password hashing** using bcrypt
+    - **Email verification** and user profile management
+    
+    ### 📍 Charging Point Management
+    - **Real-time point discovery** with geographic filtering
+    - **Multi-criteria search**: by status, location (coordinates or bounding box), availability
+    - **Detailed point information**: capacity, pricing, reservation status
+    - **Status change history**: track all state transitions over time
+    
+    ### 🔄 Reservation System
+    - **Atomic reservations** with row-level database locking
+    - **Race-condition-proof** implementation
+    - **Flexible durations**: 15-60 minutes (30 min default)
+    - **Real-time availability** checking
+    
+    ### ⚡ Session Management
+    - **Complete session recording**: start/end times, energy delivered, battery state changes
+    - **Billing integration**: pricing per kWh, total amounts
+    - **Historical data**: full audit trail of all charging sessions
+    - **CSV export** capability for reporting
+    
+    ### 💰 Pricing Management
+    - **Dynamic pricing** support with manual overrides
+    - **Point-level pricing**: different rates for different locations
+    - **Price history tracking**: monitor pricing changes
+    
+    ### 📊 Admin Operations
+    - **Bulk data import**: CSV upload for charging point data
+    - **Health monitoring**: database connectivity and system status
+    - **Statistical reporting**: online/offline point counts
+    
+    ## Authentication Details
+    
+    ### JWT Token Structure
+    All endpoints except `/auth/*` and `/admin/healthcheck` require Bearer token authentication.
+    
+    ```
+    Authorization: Bearer <jwt_token>
+    ```
+    
+    **Token Lifetime**: 24 hours from issue
+    
+    **Token Claims** (example decoded):
+    ```json
+    {
+      "sub": "user_id_12345",
+      "email": "user@example.com",
+      "name": "John Doe",
+      "iat": 1674321200,
+      "exp": 1674407600
+    }
+    ```
+    
+    ### Obtaining a Token
+    
+    **Option 1: Register New Account**
+    ```
+    POST /auth/register
+    ```
+    Returns JWT immediately after successful registration.
+    
+    **Option 2: Login with Existing Credentials**
+    ```
+    POST /auth/login
+    ```
+    Returns JWT upon successful authentication.
+    
+    ### Token Expiration
+    
+    When token expires (401 Unauthorized response):
+    1. Call `/auth/login` with current credentials
+    2. Extract new token from response
+    3. Update Authorization header with new token
+    
+    ## Data Formats & Standards
+    
+    ### DateTime Format
+    **Format**: `YYYY-MM-DD HH:MM` (24-hour time)
+    
+    **Examples**:
+    - `2025-12-25 14:30` (2:30 PM on Christmas 2025)
+    - `2026-01-05 04:25` (4:25 AM on January 5, 2026)
+    - `2025-12-25 00:00` (midnight)
+    
+    **Timezone**: All times in server/database timezone (UTC by default)
+    
+    ### Date-Only Format
+    **Format**: `YYYYMMDD`
+    
+    **Examples**:
+    - `20251225` (December 25, 2025)
+    - `20260105` (January 5, 2026)
+    
+    **Usage**: Date range queries (from/to parameters)
+    
+    ### Coordinate Format
+    **Format**: WGS84 decimal degrees
+    
+    **Examples**:
+    - Latitude: `37.9838` (Central Athens)
+    - Longitude: `23.7275` (Central Athens)
+    - Latitude: `37.7749` (San Francisco)
+    - Longitude: `-122.4194` (San Francisco)
+    
+    ### Numeric Precision
+    
+    **Price (€/kWh)**
+    - Type: Decimal
+    - Precision: 2 decimal places
+    - Example: `0.35` (€0.35/kWh)
+    - Range: 0.00 - 999.99
+    
+    **Energy (kWh)**
+    - Type: Decimal
+    - Precision: 1 decimal place
+    - Example: `45.5` (45.5 kilowatt-hours)
+    - Range: 0.0 - 9999.9
+    
+    **Capacity (kW)**
+    - Type: Integer
+    - Example: `22` (22 kilowatts)
+    - Range: 0 - 999
+    
+    **State of Charge (%)**
+    - Type: Integer
+    - Range: 0 - 100
+    - Example: `80` (80% battery)
+    
+    ## Status Values
+    
+    ### Charging Point Status
+    - **AVAILABLE**: Ready for immediate use, no reservation
+    - **OCCUPIED**: Currently charging, actively in use
+    - **RESERVED**: Reserved by another user, not currently charging
+    - **FAULTED**: Hardware malfunction detected, requires service
+    - **OFFLINE**: Not operational, maintenance or disconnected
+    
+    **Status Transitions**:
+    ```
+    AVAILABLE ↔ OCCUPIED (charging starts/ends)
+    AVAILABLE ↔ RESERVED (user reserves/cancels)
+    Any Status → FAULTED (malfunction detected)
+    Any Status → OFFLINE (maintenance/disconnect)
+    FAULTED ↔ OFFLINE (service operations)
+    ```
+    
+    ## Error Handling
+    
+    ### Standard Error Response Format
+    ```json
+    {
+      "error_code": "ERROR_TYPE",
+      "error_message": "Human-readable error description",
+      "timestamp": "2025-12-25 14:30"
+    }
+    ```
+    
+    ### Common Error Codes
+    | Code | HTTP Status | Meaning | Cause |
+    |------|------------|---------|-------|
+    | `VALIDATION_ERROR` | 400 | Input validation failed | Missing/invalid required fields |
+    | `INVALID_REQUEST` | 400 | Bad request format | Malformed JSON or parameters |
+    | `INVALID_CREDENTIALS` | 401 | Wrong email/password | Incorrect login credentials |
+    | `UNAUTHORIZED` | 401 | Missing/invalid token | No token or token expired |
+    | `DUPLICATE_EMAIL` | 409 | Email already exists | Attempted registration with existing email |
+    | `NOT_FOUND` | 404 | Resource doesn't exist | Point/session doesn't exist |
+    | `DATABASE_ERROR` | 500 | Database operation failed | Connection, constraint, or query error |
+    | `INTERNAL_ERROR` | 500 | Unexpected server error | Unhandled exception |
+    
+    ### Error Handling Best Practices
+    
+    1. **Always check HTTP status code** - Indicates error category
+    2. **Parse error_code** - Machine-readable identifier for programmatic handling
+    3. **Read error_message** - Human-readable description for user feedback
+    4. **Implement retries** - For 500 errors, implement exponential backoff
+    5. **Handle 401 gracefully** - Prompt user to re-authenticate
+    
+    ## Rate Limiting
+    
+    **Current Status**: No rate limiting applied
+    
+    For production deployments, contact support team to discuss:
+    - Rate limit requirements per API key
+    - Burst allowances
+    - Retry-After header handling
+    
+    ## Pagination & Large Datasets
+    
+    **CSV Export**: For large datasets, use `format=csv` parameter:
+    ```
+    GET /points?status=AVAILABLE&format=csv
+    ```
+    
+    This returns data in CSV format suitable for spreadsheet analysis and large-scale imports.
+    
+  contact:
+    name: API Support Team
+    email: support@example.com
+    url: https://example.com/support
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+  x-logo:
+    url: https://example.com/logo.png
+    altText: EV Charging API Logo
 
-        Required CSV columns:
-        - loc_id: Location ID (required)
-        - loc_name: Location name
-        - address: Location address
-        - lat: Latitude coordinate
-        - long: Longitude coordinate
-        - is_fast: Whether location has fast chargers (boolean)
-        - charger_types: Comma-separated list of charger types
-        - station_id: Station ID
-        - network_id: Network ID
-        - charger_id: Charger ID
-        - type_id: Charger type ID
-        - status: Charger status
-        - power: Maximum power in kW
-      parameters:
-      - description: CSV file containing charging points data
-        in: formData
-        name: file
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully imported charging points
-          schema:
-            $ref: '#/definitions/handlers.AddPointsResponse'
-        "400":
-          description: Bad Request - Missing file parameter or invalid CSV format
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Upload error, CSV parsing error, or
-            database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Import charging points from CSV
-      tags:
-      - Admin
-  /getpoint/{id}:
-    get:
-      consumes:
-      - application/json
-      description: |-
-        Retrieves detailed information about a specific charging point including
-        location coordinates, current status, capacity, pricing, and reservation details.
-      parameters:
-      - description: Charging Point ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully retrieved charging point details
-          schema:
-            $ref: '#/definitions/handlers.PointDetailDTO'
-        "404":
-          description: Not Found - Charging point does not exist
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Get charging point by ID
-      tags:
-      - Points
-  /getpoints:
-    get:
-      consumes:
-      - application/json
-      description: |-
-        Retrieves a list of all charging points with optional filtering by status and geographic bounds.
-        Results can be returned in JSON or CSV format.
-      parameters:
-      - description: Filter by status (available, occupied, reserved, faulted, offline)
-        in: query
-        name: status
-        type: string
-      - default: json
-        description: Response format (json or csv)
-        in: query
-        name: format
-        type: string
-      - description: Minimum latitude for geographic filtering
-        in: query
-        name: min_lat
-        type: number
-      - description: Maximum latitude for geographic filtering
-        in: query
-        name: max_lat
-        type: number
-      - description: Minimum longitude for geographic filtering
-        in: query
-        name: min_lon
-        type: number
-      - description: Maximum longitude for geographic filtering
-        in: query
-        name: max_lon
-        type: number
-      produces:
-      - application/json
-      - text/csv
-      responses:
-        "200":
-          description: Successfully retrieved list of charging points
-          schema:
-            items:
-              $ref: '#/definitions/handlers.PointVague'
-            type: array
-        "204":
-          description: No Content - No charging points found matching the criteria
-        "401":
-          description: Invalid Status - Unrecognized status value
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Get all charging points
-      tags:
-      - Points
-  /healthcheck:
-    get:
-      consumes:
-      - application/json
-      description: |-
-        Performs a health check of the API including database connectivity verification
-        and retrieval of charging point statistics. Returns system status and counts of
-        online vs offline charging points.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: System is healthy
-          schema:
-            $ref: '#/definitions/handlers.HealthCheckResponse'
-        "400":
-          description: Database connection failed or query error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Check API health status
-      tags:
-      - System
-  /newsession:
+servers:
+  - url: http://localhost:9876/api
+    description: Local Development Server
+    variables:
+      version:
+        default: v1
+  - url: https://api.evcharging.example.com/api
+    description: Production Server
+    variables:
+      version:
+        default: v1
+
+tags:
+  - name: Authentication
+    description: |
+      ## User Account Management & JWT Token Generation
+      
+      User registration and login endpoints. These are the only endpoints that do not require authentication.
+      
+      ### Features
+      - **Email-based registration** with optional profile information
+      - **Secure password hashing** using bcrypt with default cost factor
+      - **Immediate token issuance** on successful registration or login
+      - **24-hour token validity** from issuance time
+      
+      ### Security Notes
+      - Passwords are never returned in responses
+      - Passwords are hashed before storage, original never stored
+      - Invalid login returns generic "Invalid credentials" (no email enumeration)
+      - Tokens are stateless (no database lookups on every request)
+      
+  - name: System
+    description: |
+      ## System Health & Monitoring
+      
+      Operational status and health check endpoints. No authentication required.
+      
+      ### Features
+      - **Database connectivity verification** via ping
+      - **Charging point statistics** (online/offline counts)
+      - **Connection string validation**
+      - **Real-time system status**
+      
+      ### Use Cases
+      - Load balancer health checks
+      - Deployment verification
+      - Uptime monitoring
+      - Infrastructure status dashboards
+      
+  - name: Points
+    description: |
+      ## Charging Point Information & Management
+      
+      Comprehensive endpoints for discovering, retrieving, and monitoring charging points.
+      
+      ### Features
+      - **List all points** with optional filtering
+      - **Geographic filtering** (radius search or bounding box)
+      - **Status-based filtering** (available, occupied, reserved, etc.)
+      - **Detailed point information** with pricing and reservation status
+      - **Status change history** with complete audit trail
+      - **CSV export** capability for all endpoints
+      
+      ### Search Capabilities
+      - **Radius search**: Center point + radius in km
+      - **Bounding box search**: North/South/East/West bounds
+      - **Status filter**: Find only available, occupied, or reserved points
+      - **Combined filters**: Mix multiple criteria (e.g., available points in area)
+      
+  - name: Reservations
+    description: |
+      ## Charging Point Reservation System
+      
+      Atomic reservation operations with race-condition protection.
+      
+      ### Features
+      - **30-minute default reservation** (customizable 15-60 minutes)
+      - **Atomic operations** with database row-level locking
+      - **Automatic expiration** of expired reservations
+      - **Availability checking** with real-time status
+      - **Clear failure reasons** (occupied, offline, not found, etc.)
+      
+      ### Guarantee: Race-Condition Free
+      Uses SQL `SELECT ... FOR UPDATE` to guarantee:
+      - No two users can reserve the same point simultaneously
+      - Point status cannot change during reservation check
+      - Database transaction ensures all-or-nothing semantics
+      
+  - name: Sessions
+    description: |
+      ## Charging Session Management & Billing
+      
+      Recording, retrieval, and analysis of completed charging sessions.
+      
+      ### Features
+      - **Session recording** with complete billing information
+      - **Date range queries** for session history retrieval
+      - **CSV export** for billing reconciliation
+      - **Energy tracking** (SOC changes, kWh delivered)
+      - **Pricing information** (rates and total amounts)
+      
+      ### Session Data Captured
+      - Start/end times (session duration calculation)
+      - Battery percentage changes (start vs end SOC)
+      - Energy delivered (kWh)
+      - Pricing (per kWh rate)
+      - Total charged amount
+      
+  - name: Admin
+    description: |
+      ## Administrative Operations & Data Management
+      
+      Bulk operations and administrative functions requiring special permissions.
+      
+      ### Features
+      - **Bulk CSV import** for charging point data
+      - **Upsert behavior** (update existing, insert new)
+      - **Multi-field updates** with constraint handling
+      - **Transaction processing** for data integrity
+      
+      ### CSV Import Format
+      Expected columns: loc_id, loc_name, address, lat, long, is_fast, charger_types, station_id, network_id, charger_id, type_id, status, power
+
+paths:
+  /auth/register:
     post:
-      consumes:
-      - application/json
-      description: |-
-        Records a new completed charging session with all relevant details including
-        start/end times, energy delivered, state of charge changes, and billing information.
-      parameters:
-      - description: Charging session details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.NewSessionRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully created charging session (empty body)
-        "400":
-          description: Bad Request - Missing required fields or invalid timestamp
-            format
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "404":
-          description: Not Found - Charging point does not exist
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Create a new charging session
       tags:
-      - Sessions
+        - Authentication
+      summary: Register a new user account
+      description: |
+        Creates a new user account with email and password. Upon successful registration,
+        immediately returns a valid JWT token for API authentication.
+        
+        ## Request Validation
+        - Email must be unique (no duplicates allowed)
+        - Password is required
+        - Username, first name, and last name are optional
+        
+        ## Password Security
+        - Password is hashed using bcrypt (default cost factor)
+        - Original password never stored
+        - Hashing takes ~100ms per request (intentional for security)
+        
+        ## Response
+        Returns JWT token immediately, no email confirmation required.
+        Token is valid for 24 hours from issuance.
+        
+      operationId: registerUser
+      requestBody:
+        required: true
+        description: New user registration details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              basic:
+                summary: Basic registration
+                value:
+                  email: user@example.com
+                  password: securePassword123
+              complete:
+                summary: Registration with full profile
+                value:
+                  email: john@example.com
+                  password: mySecurePass456
+                  username: john_doe
+                  first_name: John
+                  last_name: Doe
+      responses:
+        '200':
+          description: Account successfully created, JWT token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  value:
+                    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMzQ1IiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwiaWF0IjoxNjc0MzIxMjAwLCJleHAiOjE2NzQ0MDc2MDB9.signature
+        '400':
+          description: Bad Request - Missing required fields (email or password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: VALIDATION_ERROR
+                error_message: Missing required field 'email'
+                timestamp: '2025-12-25 14:30'
+        '409':
+          description: Conflict - Email address already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: DUPLICATE_EMAIL
+                error_message: Email already registered
+                timestamp: '2025-12-25 14:30'
+        '500':
+          description: Internal Server Error - Password hashing or database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: INTERNAL_ERROR
+                error_message: Failed to hash password
+                timestamp: '2025-12-25 14:30'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate user and obtain JWT token
+      description: |
+        Authenticates a user by verifying email and password credentials.
+        Upon successful authentication, returns a JWT token valid for 24 hours.
+        
+        ## Authentication Process
+        1. Email lookup in database
+        2. Password verification using bcrypt comparison
+        3. JWT token generation with 24-hour expiry
+        
+        ## Security Features
+        - No email enumeration: Both invalid email and password return generic error
+        - Bcrypt comparison is slow (intentional) to prevent brute force
+        - Tokens are stateless (no session storage)
+        
+        ## Error Handling
+        Invalid credentials (user not found or wrong password) return:
+        - HTTP 401 Unauthorized
+        - Generic error message (no distinction between email not found vs wrong password)
+        
+      operationId: loginUser
+      requestBody:
+        required: true
+        description: User login credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: user@example.com
+              password: securePassword123
+      responses:
+        '200':
+          description: Authentication successful, JWT token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMzQ1IiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwiaWF0IjoxNjc0MzIxMjAwLCJleHAiOjE2NzQ0MDc2MDB9.signature
+        '400':
+          description: Bad Request - Missing required credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: VALIDATION_ERROR
+                error_message: Missing required field 'password'
+                timestamp: '2025-12-25 14:30'
+        '401':
+          description: Unauthorized - Invalid email or password (no distinction provided)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: INVALID_CREDENTIALS
+                error_message: Invalid credentials
+                timestamp: '2025-12-25 14:30'
+        '500':
+          description: Internal Server Error - Database error or token generation failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: INTERNAL_ERROR
+                error_message: Failed to generate token
+                timestamp: '2025-12-25 14:30'
+
+  /admin/healthcheck:
+    get:
+      tags:
+        - System
+      summary: Check API health status
+      description: |
+        Performs comprehensive health check including:
+        - Database connectivity verification (ping)
+        - Charging point statistics (total, online, offline)
+        - Connection string validation
+        
+        ## Response Information
+        - **status**: "OK" if all systems operational
+        - **dbconnection**: Database connection string (sanitized)
+        - **n_charge_points**: Total points in database
+        - **n_charge_points_online**: Points that are operational
+        - **n_charge_points_offline**: Points that are offline/maintenance
+        
+        ## Use Cases
+        - **Load balancer health checks**: Verify API is running
+        - **Deployment verification**: Confirm database is accessible
+        - **Uptime monitoring**: Regular ping from monitoring service
+        - **Dashboard**: Display current system status
+        
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System is healthy, all services operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheckResponse'
+              example:
+                status: OK
+                dbconnection: postgres://user:***@localhost:5432/evcharging
+                n_charge_points: 1500
+                n_charge_points_online: 1420
+                n_charge_points_offline: 80
+        '500':
+          description: Database connection failed or query error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: DATABASE_ERROR
+                error_message: Failed to connect to database
+                timestamp: '2025-12-25 14:30'
+
+  /points:
+    get:
+      tags:
+        - Points
+      summary: Get all charging points with optional filtering
+      description: |
+        Retrieves a list of all charging points with comprehensive filtering options.
+        Results can be returned in JSON or CSV format.
+        
+        ## Filtering Options
+        
+        ### Status Filter
+        Return only points with specific status:
+        - `AVAILABLE`: Ready for charging
+        - `OCCUPIED`: Currently charging
+        - `RESERVED`: Reserved by another user
+        - `FAULTED`: Hardware malfunction
+        - `OFFLINE`: Not operational
+        
+        ### Geographic Filters
+        Two options: radius search OR bounding box search (not both)
+        
+        **Radius Search**:
+        - Requires: lat, lng, radius
+        - Returns points within radius (km) of center point
+        
+        **Bounding Box Search**:
+        - Requires: min_lat, max_lat, min_lon, max_lon
+        - Returns points within rectangle bounds
+        
+        ## Output Format
+        - **json** (default): Structured JSON array
+        - **csv**: Spreadsheet-compatible format
+        
+        ## Response Handling
+        - **200**: One or more results found
+        - **204**: No results matching criteria (success, no error)
+        
+      operationId: getPoints
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter by charging point status
+          schema:
+            type: string
+            enum:
+              - AVAILABLE
+              - OCCUPIED
+              - RESERVED
+              - FAULTED
+              - OFFLINE
+          example: AVAILABLE
+        - name: lat
+          in: query
+          required: false
+          description: Center latitude for radius search
+          schema:
+            type: number
+            format: double
+          example: 37.9838
+        - name: lng
+          in: query
+          required: false
+          description: Center longitude for radius search
+          schema:
+            type: number
+            format: double
+          example: 23.7275
+        - name: radius
+          in: query
+          required: false
+          description: Search radius in kilometers
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          example: 50
+        - name: min_lat
+          in: query
+          required: false
+          description: Minimum latitude for bounding box
+          schema:
+            type: number
+            format: double
+          example: 37.5
+        - name: max_lat
+          in: query
+          required: false
+          description: Maximum latitude for bounding box
+          schema:
+            type: number
+            format: double
+          example: 38.5
+        - name: min_lon
+          in: query
+          required: false
+          description: Minimum longitude for bounding box
+          schema:
+            type: number
+            format: double
+          example: 23.0
+        - name: max_lon
+          in: query
+          required: false
+          description: Maximum longitude for bounding box
+          schema:
+            type: number
+            format: double
+          example: 24.5
+        - name: format
+          in: query
+          required: false
+          description: Response format (json or csv)
+          schema:
+            type: string
+            enum:
+              - json
+              - csv
+            default: json
+          example: json
+      responses:
+        '200':
+          description: Successfully retrieved list of charging points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointVague'
+              examples:
+                success:
+                  value:
+                    - providerName: EMPower
+                      pointid: '123'
+                      lon: '23.727539'
+                      lat: '37.983810'
+                      status: AVAILABLE
+                      cap: 22
+            text/csv:
+              example: |
+                providerName,pointid,lon,lat,status,cap
+                EMPower,123,23.727539,37.983810,AVAILABLE,22
+        '204':
+          description: No Content - No charging points found matching the criteria
+        '400':
+          description: Bad Request - Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /point/{id}:
+    get:
+      tags:
+        - Points
+      summary: Get detailed information about a specific charging point
+      description: |
+        Retrieves comprehensive details about a single charging point including:
+        - Location coordinates (latitude, longitude)
+        - Current operational status
+        - Maximum power capacity
+        - Current pricing information
+        - Reservation end time (if reserved)
+        - Pricing mode (manual vs dynamic)
+        
+        ## Response Fields
+        - **pointid**: Unique identifier
+        - **lat/lon**: GPS coordinates (decimal degrees)
+        - **status**: Current status (AVAILABLE, OCCUPIED, RESERVED, FAULTED, OFFLINE)
+        - **cap**: Maximum power in kW
+        - **reservationendtime**: When current reservation expires (or current time if not reserved)
+        - **kwhprice**: Current price per kWh
+        - **is_manual_price**: true if price is manually set, false if dynamically calculated
+        
+      operationId: getPointById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Charging point ID
+          schema:
+            type: string
+          example: '123'
+      responses:
+        '200':
+          description: Successfully retrieved charging point details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PointDetailDTO'
+              example:
+                pointid: '123'
+                lon: '23.727539'
+                lat: '37.983810'
+                status: AVAILABLE
+                cap: 22
+                reservationendtime: '2025-12-25 15:00'
+                kwhprice: 0.35
+                is_manual_price: false
+        '400':
+          description: Bad Request - Invalid point ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Charging point does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /pointstatus/{pointid}/{from}/{to}:
     get:
-      consumes:
-      - application/json
-      description: |-
-        Retrieves the history of status changes for a specific charging point within a date range.
-        Status changes are logged whenever a point transitions between states (e.g., available → charging).
-        Results can be returned in JSON or CSV format.
-      parameters:
-      - description: Charging Point ID
-        in: path
-        name: pointid
-        required: true
-        type: string
-      - description: Start date in YYYYMMDD format
-        example: "20251201"
-        in: path
-        name: from
-        required: true
-        type: string
-      - description: End date in YYYYMMDD format (inclusive)
-        example: "20251225"
-        in: path
-        name: to
-        required: true
-        type: string
-      - default: json
-        description: Response format (json or csv)
-        in: query
-        name: format
-        type: string
-      produces:
-      - application/json
-      - text/csv
-      responses:
-        "200":
-          description: Successfully retrieved status change history
-          schema:
-            items:
-              $ref: '#/definitions/handlers.StatusChangeDTO'
-            type: array
-        "204":
-          description: No Content - No status changes found in the specified date
-            range
-        "400":
-          description: Bad Request - Invalid date format
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "404":
-          description: Not Found - Charging point does not exist
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Get status change history for a charging point
       tags:
-      - Points
+        - Points
+      summary: Get status change history for a charging point
+      description: |
+        Retrieves the complete history of status changes for a charging point within a date range.
+        
+        ## Date Format
+        Use YYYYMMDD format for both from and to dates:
+        - `20251225` = December 25, 2025
+        - `20260105` = January 5, 2026
+        
+        ## Response
+        Array of status change events, ordered chronologically.
+        Each entry includes timestamp and state transition details.
+        
+        ## Use Cases
+        - Analyze point availability trends
+        - Track malfunction frequency
+        - Generate utilization reports
+        - Audit operational history
+        
+      operationId: getPointStatus
+      parameters:
+        - name: pointid
+          in: path
+          required: true
+          description: Charging point ID
+          schema:
+            type: string
+          example: '123'
+        - name: from
+          in: path
+          required: true
+          description: Start date in YYYYMMDD format
+          schema:
+            type: string
+            pattern: '^\d{8}$'
+          example: '20251201'
+        - name: to
+          in: path
+          required: true
+          description: End date in YYYYMMDD format (inclusive)
+          schema:
+            type: string
+            pattern: '^\d{8}$'
+          example: '20251225'
+        - name: format
+          in: query
+          required: false
+          description: Response format (json or csv)
+          schema:
+            type: string
+            enum:
+              - json
+              - csv
+            default: json
+      responses:
+        '200':
+          description: Successfully retrieved status change history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StatusChangeDTO'
+              examples:
+                success:
+                  value:
+                    - timeref: '2025-12-25 14:30'
+                      old_state: AVAILABLE
+                      new_state: OCCUPIED
+                    - timeref: '2025-12-25 15:45'
+                      old_state: OCCUPIED
+                      new_state: AVAILABLE
+            text/csv:
+              example: |
+                timeref,old_state,new_state
+                2025-12-25 14:30,AVAILABLE,OCCUPIED
+                2025-12-25 15:45,OCCUPIED,AVAILABLE
+        '204':
+          description: No Content - No status changes found in the specified date range
+        '400':
+          description: Bad Request - Invalid date format (must be YYYYMMDD)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: VALIDATION_ERROR
+                error_message: "Invalid date format. Use YYYYMMDD"
+                timestamp: '2025-12-25 14:30'
+        '404':
+          description: Not Found - Charging point does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /reserve/{id}:
     post:
-      consumes:
-      - application/json
-      description: |-
-        Attempts to reserve a charging point for a specified duration.
-        The reservation duration must be between 15 and 60 minutes (defaults to 30 if not specified).
-        Only 'available' charging points can be reserved.
-        The operation is atomic and uses row-level locking to prevent race conditions.
-      parameters:
-      - description: Charging Point ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Reservation result (check status field for success/failure
-            reason)
-          schema:
-            $ref: '#/definitions/handlers.ReserveResponseDTO'
-        "400":
-          description: Bad Request - Invalid point ID
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Reserve a charging point
       tags:
-      - Reservations
+        - Reservations
+      summary: Reserve a charging point (30 minutes default)
+      description: |
+        Reserves an available charging point for 30 minutes.
+        
+        ## How It Works
+        1. Checks if charging point exists
+        2. Verifies point is in AVAILABLE status
+        3. Atomically locks the point and sets reservation
+        4. Returns reservation confirmation with end time
+        
+        ## Concurrency Guarantee
+        Uses database-level row locking (`SELECT ... FOR UPDATE`) to ensure:
+        - No race conditions with other concurrent reservation attempts
+        - Exactly one reservation succeeds if multiple requests arrive simultaneously
+        - Point status cannot change during reservation check
+        
+        ## Response Status Field
+        - `RESERVED`: Reservation successful
+        - Point's current status: Point is not available (OCCUPIED, RESERVED, FAULTED, OFFLINE)
+        - `not_found`: Point doesn't exist
+        
+        ## Reservation Duration
+        Fixed at 30 minutes. Use `/reserve/{id}/{minutes}` for custom duration.
+        
+      operationId: reservePoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Charging point ID
+          schema:
+            type: string
+          example: '123'
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Reservation result (check status field for success/failure reason)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReserveResponseDTO'
+              examples:
+                success:
+                  value:
+                    pointid: '123'
+                    status: RESERVED
+                    reservationendtime: '2025-12-25 15:30'
+                unavailable:
+                  value:
+                    pointid: '123'
+                    status: OCCUPIED
+                    reservationendtime: '1970-01-01 00:00'
+                notfound:
+                  value:
+                    pointid: '123'
+                    status: not_found
+                    reservationendtime: '1970-01-01 00:00'
+        '400':
+          description: Bad Request - Invalid point ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /reserve/{id}/{minutes}:
     post:
-      consumes:
-      - application/json
-      description: |-
-        Attempts to reserve a charging point for a specified duration.
-        The reservation duration must be between 15 and 60 minutes (defaults to 30 if not specified).
-        Only 'available' charging points can be reserved.
-        The operation is atomic and uses row-level locking to prevent race conditions.
-      parameters:
-      - description: Charging Point ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: 'Reservation duration in minutes (15-60, default: 30)'
-        in: path
-        name: minutes
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Reservation result (check status field for success/failure
-            reason)
-          schema:
-            $ref: '#/definitions/handlers.ReserveResponseDTO'
-        "400":
-          description: Bad Request - Invalid point ID
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Reserve a charging point
       tags:
-      - Reservations
-  /resetpoints:
-    post:
-      consumes:
-      - application/json
-      description: |-
-        Performs a complete reset of the charging points database by:
-        1. Deleting all existing charging sessions, reservations, chargers, stations, and locations
-        2. Re-importing all data from the seed JSON file (data/parts1234.json)
+        - Reservations
+      summary: Reserve a charging point with custom duration
+      description: |
+        Reserves an available charging point for a custom duration (15-60 minutes).
+        
+        ## Duration Behavior
+        - Minimum: 15 minutes (values less than 15 are rounded up)
+        - Maximum: 60 minutes (values greater than 60 are clamped)
+        - Default: 30 minutes (if not specified)
+        
+        ### Examples
+        - 10 minutes requested → 15 minutes reserved
+        - 45 minutes requested → 45 minutes reserved
+        - 90 minutes requested → 60 minutes reserved
+        
+        ## Atomic Operations
+        Uses database row-level locking to guarantee race-condition-free reservations.
+        
+      operationId: reservePointWithDuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Charging point ID
+          schema:
+            type: string
+          example: '123'
+        - name: minutes
+          in: path
+          required: true
+          description: Desired duration in minutes (15-60, auto-clamped)
+          schema:
+            type: integer
+            minimum: 15
+            maximum: 60
+          example: 45
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Reservation result with actual duration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReserveResponseDTO'
+              example:
+                pointid: '123'
+                status: RESERVED
+                reservationendtime: '2025-12-25 15:45'
+        '400':
+          description: Bad Request - Invalid point ID or duration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-        This operation is atomic - if any step fails, all changes are rolled back.
-        Use with caution as this will delete all existing session and reservation data.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully reset all charging points
-          schema:
-            $ref: '#/definitions/handlers.ResetPointsResponse'
-        "500":
-          description: Internal Server Error - File read error, JSON parsing error,
-            or database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Reset all charging points to initial state
-      tags:
-      - Admin
-  /sessions/{id}/{from}/{to}:
-    get:
-      consumes:
-      - application/json
-      description: |-
-        Retrieves all charging sessions for a specific charging point within a date range.
-        Sessions are ordered by start time in descending order (most recent first).
-        Results can be returned in JSON or CSV format.
-      parameters:
-      - description: Charging Point ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Start date in YYYYMMDD format
-        example: "20251201"
-        in: path
-        name: from
-        required: true
-        type: string
-      - description: End date in YYYYMMDD format (inclusive)
-        example: "20251225"
-        in: path
-        name: to
-        required: true
-        type: string
-      - default: json
-        description: Response format (json or csv)
-        in: query
-        name: format
-        type: string
-      produces:
-      - application/json
-      - text/csv
-      responses:
-        "200":
-          description: Successfully retrieved charging sessions
-          schema:
-            items:
-              $ref: '#/definitions/handlers.SessionDTO'
-            type: array
-        "204":
-          description: No Content - No sessions found in the specified date range
-        "400":
-          description: Bad Request - Invalid date format
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "404":
-          description: Not Found - Charging point does not exist
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Get charging sessions for a point
-      tags:
-      - Sessions
   /updpoint/{id}:
     post:
-      consumes:
-      - application/json
-      description: |-
-        Updates the properties of a specific charging point including status, price, and pricing mode.
-        At least one field (status, kwhprice, or is_manual_price) must be provided.
-        When setting kwhprice without specifying is_manual_price, it defaults to manual pricing mode.
-      parameters:
-      - description: Charging Point ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Update request body
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handlers.UpdatePointRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Successfully updated charging point
-          schema:
-            $ref: '#/definitions/handlers.UpdatePointResponse'
-        "400":
-          description: Bad Request - Invalid input or missing required fields
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "404":
-          description: Not Found - Charging point does not exist
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-        "500":
-          description: Internal Server Error - Database error
-          schema:
-            $ref: '#/definitions/handlers.ErrorLogResponse'
-      summary: Update a charging point
       tags:
-      - Points
-swagger: "2.0"
+        - Points
+      summary: Update a charging point
+      description: |
+        Updates the properties of a charging point.
+        
+        ## Updatable Fields
+        - **status**: Change operational status
+        - **kwhprice**: Update price per kWh
+        - **is_manual_price**: Toggle between manual and dynamic pricing
+        
+        ## Requirements
+        - At least one field must be provided
+        - All fields are optional, omitted fields are not changed
+        - Invalid status values are rejected with 400
+        
+        ## Valid Status Values
+        - AVAILABLE
+        - OCCUPIED
+        - RESERVED
+        - FAULTED
+        - OFFLINE
+        
+        ## Pricing Logic
+        - If `kwhprice` is set and `is_manual_price` not specified, defaults to manual mode
+        - Price precision: 2 decimal places (€0.35, not €0.354)
+        
+      operationId: updatePoint
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Charging point ID
+          schema:
+            type: string
+          example: '123'
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Update request with at least one field
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePointRequest'
+            examples:
+              statusOnly:
+                summary: Update status only
+                value:
+                  status: AVAILABLE
+              priceOnly:
+                summary: Update price only
+                value:
+                  kwhprice: 0.45
+              complete:
+                summary: Update all fields
+                value:
+                  status: AVAILABLE
+                  kwhprice: 0.45
+                  is_manual_price: true
+      responses:
+        '200':
+          description: Successfully updated charging point
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdatePointResponse'
+              example:
+                pointid: '123'
+                status: AVAILABLE
+                kwhprice: 0.45
+                is_manual_price: true
+        '400':
+          description: Bad Request - Invalid input or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                noFields:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    error_message: "At least one field must be provided"
+                    timestamp: '2025-12-25 14:30'
+                invalidStatus:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    error_message: "Invalid status value"
+                    timestamp: '2025-12-25 14:30'
+        '401':
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Charging point does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /newsession:
+    post:
+      tags:
+        - Sessions
+      summary: Create a new charging session
+      description: |
+        Records a completed charging session with all relevant billing information.
+        
+        ## Session Data Required
+        - **Point ID**: Which point was used
+        - **Start/End Times**: Session duration (format: YYYY-MM-DD HH:MM)
+        - **Energy**: Total kWh delivered
+        - **Battery State**: SOC% at start and end
+        - **Pricing**: Price per kWh and total amount
+        
+        ## Timestamp Format
+        All times must be in `YYYY-MM-DD HH:MM` format (24-hour time):
+        - `2025-12-25 10:00` (10:00 AM)
+        - `2025-12-25 23:59` (11:59 PM)
+        - `1970-01-01 00:00` (midnight)
+        
+        ## State of Charge (SOC)
+        - Integer percentage (0-100)
+        - Example: 20% battery at start, 80% at end
+        
+        ## Validation
+        - All fields are required
+        - Timestamp format must be exact: YYYY-MM-DD HH:MM
+        - Point must exist in database
+        - All numeric values must be valid numbers
+        
+      operationId: newSession
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        description: Charging session details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewSessionRequest'
+            example:
+              pointid: '123'
+              starttime: '2025-12-25 10:00'
+              endtime: '2025-12-25 11:30'
+              startsoc: 20
+              endsoc: 80
+              totalkwh: 45.5
+              kwhprice: 0.35
+              amount: 15.93
+      responses:
+        '200':
+          description: Successfully created charging session (empty body)
+        '400':
+          description: Bad Request - Missing required fields or invalid timestamp format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingField:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    error_message: "Missing required field 'starttime'"
+                    timestamp: '2025-12-25 14:30'
+                invalidTime:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    error_message: "Invalid timestamp format. Use YYYY-MM-DD HH:MM"
+                    timestamp: '2025-12-25 14:30'
+        '401':
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Charging point does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /sessions/{id}/{from}/{to}:
+    get:
+      tags:
+        - Sessions
+      summary: Get charging sessions for a point
+      description: |
+        Retrieves all charging sessions for a specific charging point within a date range.
+        
+        ## Date Format
+        Use YYYYMMDD format for date range:
+        - `20251201` = December 1, 2025
+        - `20251225` = December 25, 2025
+        
+        ## Response Ordering
+        Sessions are ordered by start time, most recent first.
+        
+        ## Output Formats
+        - **json** (default): Structured array of session objects
+        - **csv**: Spreadsheet-compatible format for analysis
+        
+        ## Use Cases
+        - **User history**: Show user their past charging sessions
+        - **Billing**: Generate bills for charging sessions
+        - **Analytics**: Analyze usage patterns over time
+        - **Reporting**: Export data for reconciliation
+        
+        ## Empty Results
+        If no sessions found, returns 204 No Content (not an error).
+        
+      operationId: getSessions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Charging point ID
+          schema:
+            type: string
+          example: '123'
+        - name: from
+          in: path
+          required: true
+          description: Start date in YYYYMMDD format
+          schema:
+            type: string
+            pattern: '^\d{8}$'
+          example: '20251201'
+        - name: to
+          in: path
+          required: true
+          description: End date in YYYYMMDD format (inclusive)
+          schema:
+            type: string
+            pattern: '^\d{8}$'
+          example: '20251225'
+        - name: format
+          in: query
+          required: false
+          description: Response format (json or csv)
+          schema:
+            type: string
+            enum:
+              - json
+              - csv
+            default: json
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Successfully retrieved charging sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionDTO'
+              examples:
+                success:
+                  value:
+                    - starttime: '2025-12-25 10:00'
+                      endtime: '2025-12-25 11:30'
+                      startsoc: 20
+                      endsoc: 80
+                      totalkwh: 45.5
+                      kwhprice: 0.35
+                      amount: 15.93
+            text/csv:
+              example: |
+                starttime,endtime,startsoc,endsoc,totalkwh,kwhprice,amount
+                2025-12-25 10:00,2025-12-25 11:30,20,80,45.5,0.35,15.93
+        '204':
+          description: No Content - No sessions found in the specified date range
+        '400':
+          description: Bad Request - Invalid date format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: VALIDATION_ERROR
+                error_message: "Invalid date format. Use YYYYMMDD"
+                timestamp: '2025-12-25 14:30'
+        '401':
+          description: Unauthorized - Missing or invalid authentication token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found - Charging point does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error - Database error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer token authentication. Obtain token via:
+        - `/auth/register` - Create new account
+        - `/auth/login` - Login with existing credentials
+        
+        Token expires 24 hours from issuance.
+        Include in request header: `Authorization: Bearer <token>`
+
+  schemas:
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (must be unique)
+          example: user@example.com
+        password:
+          type: string
+          description: User's password (will be hashed using bcrypt)
+          minLength: 1
+          example: securePassword123
+        username:
+          type: string
+          description: Username for the account (optional)
+          example: john_doe
+        first_name:
+          type: string
+          description: User's first name (optional)
+          example: John
+        last_name:
+          type: string
+          description: User's last name (optional)
+          example: Doe
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: user@example.com
+        password:
+          type: string
+          description: User's password
+          example: securePassword123
+
+    AuthResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: JWT token valid for 24 hours
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMzQ1IiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwiaWF0IjoxNjc0MzIxMjAwLCJleHAiOjE2NzQ0MDc2MDB9.signature
+
+    HealthCheckResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Overall system status
+          example: OK
+        dbconnection:
+          type: string
+          description: Database connection string (sanitized)
+          example: postgres://user:***@localhost:5432/evcharging
+        n_charge_points:
+          type: integer
+          format: int64
+          description: Total number of charging points
+          example: 1500
+        n_charge_points_online:
+          type: integer
+          format: int64
+          description: Number of online/operational charging points
+          example: 1420
+        n_charge_points_offline:
+          type: integer
+          format: int64
+          description: Number of offline charging points
+          example: 80
+
+    PointVague:
+      type: object
+      properties:
+        providerName:
+          type: string
+          description: Name of the charging network provider
+          example: EMPower
+        pointid:
+          type: string
+          description: Unique identifier of the charging point
+          example: '123'
+        lon:
+          type: string
+          description: Longitude coordinate (decimal degrees)
+          example: '23.727539'
+        lat:
+          type: string
+          description: Latitude coordinate (decimal degrees)
+          example: '37.983810'
+        status:
+          type: string
+          description: Current operational status
+          enum:
+            - AVAILABLE
+            - OCCUPIED
+            - RESERVED
+            - FAULTED
+            - OFFLINE
+          example: AVAILABLE
+        cap:
+          type: integer
+          description: Maximum charging capacity in kW
+          example: 22
+
+    PointDetailDTO:
+      type: object
+      properties:
+        pointid:
+          type: string
+          description: Unique identifier
+          example: '123'
+        lon:
+          type: string
+          description: Longitude coordinate
+          example: '23.727539'
+        lat:
+          type: string
+          description: Latitude coordinate
+          example: '37.983810'
+        status:
+          type: string
+          description: Current status
+          enum:
+            - AVAILABLE
+            - OCCUPIED
+            - RESERVED
+            - FAULTED
+            - OFFLINE
+          example: AVAILABLE
+        cap:
+          type: integer
+          description: Maximum power in kW
+          example: 22
+        reservationendtime:
+          type: string
+          description: Reservation end time (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 15:00'
+        kwhprice:
+          type: number
+          format: double
+          description: Current price per kWh
+          example: 0.35
+        is_manual_price:
+          type: boolean
+          description: True if manually set, false if dynamically calculated
+          example: false
+
+    StatusChangeDTO:
+      type: object
+      properties:
+        timeref:
+          type: string
+          description: Timestamp of status change (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 14:30'
+        old_state:
+          type: string
+          description: Previous status
+          enum:
+            - AVAILABLE
+            - OCCUPIED
+            - RESERVED
+            - FAULTED
+            - OFFLINE
+          example: AVAILABLE
+        new_state:
+          type: string
+          description: New status after change
+          enum:
+            - AVAILABLE
+            - OCCUPIED
+            - RESERVED
+            - FAULTED
+            - OFFLINE
+          example: OCCUPIED
+
+    ReserveResponseDTO:
+      type: object
+      properties:
+        pointid:
+          type: string
+          description: Charging point ID
+          example: '123'
+        status:
+          type: string
+          description: Result status (RESERVED if successful, or reason for failure)
+          example: RESERVED
+        reservationendtime:
+          type: string
+          description: End time of reservation (1970-01-01 00:00 if failed)
+          example: '2025-12-25 15:30'
+
+    UpdatePointRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          description: New operational status
+          enum:
+            - AVAILABLE
+            - OCCUPIED
+            - RESERVED
+            - FAULTED
+            - OFFLINE
+          example: AVAILABLE
+        kwhprice:
+          type: number
+          format: double
+          description: New price per kWh
+          example: 0.45
+        is_manual_price:
+          type: boolean
+          description: True for manual pricing, false for dynamic
+          example: true
+
+    UpdatePointResponse:
+      type: object
+      properties:
+        pointid:
+          type: string
+          example: '123'
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - OCCUPIED
+            - RESERVED
+            - FAULTED
+            - OFFLINE
+          example: AVAILABLE
+        kwhprice:
+          type: number
+          format: double
+          example: 0.45
+        is_manual_price:
+          type: boolean
+          example: true
+
+    NewSessionRequest:
+      type: object
+      required:
+        - pointid
+        - starttime
+        - endtime
+        - startsoc
+        - endsoc
+        - totalkwh
+        - kwhprice
+        - amount
+      properties:
+        pointid:
+          type: string
+          description: Charging point ID
+          example: '123'
+        starttime:
+          type: string
+          description: Session start (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 10:00'
+        endtime:
+          type: string
+          description: Session end (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 11:30'
+        startsoc:
+          type: integer
+          description: Battery % at start (0-100)
+          example: 20
+        endsoc:
+          type: integer
+          description: Battery % at end (0-100)
+          example: 80
+        totalkwh:
+          type: number
+          format: double
+          description: Energy delivered in kWh
+          example: 45.5
+        kwhprice:
+          type: number
+          format: double
+          description: Price per kWh
+          example: 0.35
+        amount:
+          type: number
+          format: double
+          description: Total charge amount
+          example: 15.93
+
+    SessionDTO:
+      type: object
+      properties:
+        starttime:
+          type: string
+          description: Start time (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 10:00'
+        endtime:
+          type: string
+          description: End time (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 11:30'
+        startsoc:
+          type: integer
+          description: Start battery %
+          example: 20
+        endsoc:
+          type: integer
+          description: End battery %
+          example: 80
+        totalkwh:
+          type: number
+          format: double
+          description: Energy delivered
+          example: 45.5
+        kwhprice:
+          type: number
+          format: double
+          description: Price per kWh
+          example: 0.35
+        amount:
+          type: number
+          format: double
+          description: Total charged amount
+          example: 15.93
+
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+          description: Machine-readable error code
+          example: VALIDATION_ERROR
+        error_message:
+          type: string
+          description: Human-readable error message
+          example: Missing required field 'email'
+        timestamp:
+          type: string
+          description: When error occurred (YYYY-MM-DD HH:MM)
+          example: '2025-12-25 14:30'
+
+security:
+  - BearerAuth: []

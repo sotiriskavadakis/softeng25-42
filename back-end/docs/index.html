@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Charging API - Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        /* Additional inline overrides if needed */
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>⚡ EV Charging Network API</h1>
+            <p>Complete API Documentation - Version 1.0.0</p>
+            <div class="header-links">
+                <a href="#endpoints">📋 Endpoints</a>
+                <a href="#authentication">🔐 Auth</a>
+                <a href="#errors">❌ Errors</a>
+                <a href="swagger.json" target="_blank">📊 OpenAPI JSON</a>
+                <a href="swagger.yaml" target="_blank">📄 OpenAPI YAML</a>
+                <a href="API.md" target="_blank">📖 Markdown</a>
+            </div>
+        </div>
+    </header>
+    
+    <main class="container">
+        <aside>
+            <h3>📚 Navigation</h3>
+            <ul>
+                <li><a href="#start">Quick Start</a></li>
+                <li><a href="#authentication">Authentication</a></li>
+                <li><a href="#formats">Data Formats</a></li>
+            </ul>
+            
+            <h3>🔌 Endpoints</h3>
+            <ul>
+                <li><a href="#auth-register">POST /auth/register</a></li>
+                <li><a href="#auth-login">POST /auth/login</a></li>
+                <li><a href="#health">GET /healthcheck</a></li>
+                <li><a href="#points-list">GET /points</a></li>
+                <li><a href="#point-detail">GET /point/{id}</a></li>
+                <li><a href="#reserve">POST /reserve</a></li>
+                <li><a href="#newsession">POST /newsession</a></li>
+                <li><a href="#sessions">GET /sessions</a></li>
+            </ul>
+            
+            <h3>ℹ️ Reference</h3>
+            <ul>
+                <li><a href="#errors">Error Handling</a></li>
+                <li><a href="#status">Status Values</a></li>
+                <li><a href="#examples">Examples</a></li>
+                <li><a href="#faq">Troubleshooting</a></li>
+            </ul>
+        </aside>
+        
+        <div class="content">
+            <!-- Quick Start -->
+            <section id="start">
+                <h2>⚡ Quick Start</h2>
+                
+                <div class="quick-start">
+                    <h3>1. Get a Token</h3>
+                    <pre><code class="language-bash">curl -X POST http://localhost:9876/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"pass123"}'</code></pre>
+                </div>
+                
+                <div class="quick-start">
+                    <h3>2. Use Token in Requests</h3>
+                    <pre><code class="language-bash">curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:9876/api/points</code></pre>
+                </div>
+                
+                <div class="quick-start">
+                    <h3>3. Check Health (No Auth)</h3>
+                    <pre><code class="language-bash">curl http://localhost:9876/api/admin/healthcheck</code></pre>
+                </div>
+            </section>
+            
+            <!-- Authentication -->
+            <section id="authentication">
+                <h2>🔐 Authentication</h2>
+                
+                <p>All endpoints except <code>/auth/*</code> and <code>/admin/healthcheck</code> require JWT authentication.</p>
+                
+                <h3>JWT Bearer Token</h3>
+                <p><strong>Validity:</strong> 24 hours from issuance</p>
+                <pre><code>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code></pre>
+                
+                <h3>Security</h3>
+                <ul>
+                    <li>Passwords hashed with bcrypt (never stored in plain text)</li>
+                    <li>Tokens are stateless (no session storage)</li>
+                    <li>No email enumeration (generic error for invalid credentials)</li>
+                    <li>Slow hashing to prevent brute force attacks</li>
+                </ul>
+            </section>
+            
+            <!-- Data Formats -->
+            <section id="formats">
+                <h2>📋 Data Formats</h2>
+                
+                <h3>DateTime</h3>
+                <p><strong>Format:</strong> <code>YYYY-MM-DD HH:MM</code></p>
+                <p><strong>Example:</strong> <code>2025-12-25 14:30</code></p>
+                
+                <h3>Date Only</h3>
+                <p><strong>Format:</strong> <code>YYYYMMDD</code></p>
+                <p><strong>Example:</strong> <code>20251225</code></p>
+                
+                <h3>Numeric Precision</h3>
+                <table>
+                    <tr>
+                        <th>Field</th>
+                        <th>Format</th>
+                        <th>Example</th>
+                    </tr>
+                    <tr>
+                        <td>Price (€/kWh)</td>
+                        <td>2 decimals</td>
+                        <td>0.35</td>
+                    </tr>
+                    <tr>
+                        <td>Energy (kWh)</td>
+                        <td>1 decimal</td>
+                        <td>45.5</td>
+                    </tr>
+                    <tr>
+                        <td>Capacity (kW)</td>
+                        <td>Integer</td>
+                        <td>22</td>
+                    </tr>
+                    <tr>
+                        <td>SOC (%)</td>
+                        <td>Integer</td>
+                        <td>80</td>
+                    </tr>
+                </table>
+            </section>
+            
+            <!-- Endpoints -->
+            <section id="endpoints">
+                <h2>🔌 API Endpoints</h2>
+                
+                <h3 id="auth-register">POST /auth/register</h3>
+                <div class="endpoint">
+                    <p><span class="method method-post">POST</span> Register a new user account</p>
+                    <h4>Request:</h4>
+                    <pre><code class="language-json">{
+  "email": "user@example.com",
+  "password": "securePassword123",
+  "username": "john_doe"
+}</code></pre>
+                    <h4>Response (200 OK):</h4>
+                    <pre><code class="language-json">{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</code></pre>
+                </div>
+                
+                <h3 id="auth-login">POST /auth/login</h3>
+                <div class="endpoint">
+                    <p><span class="method method-post">POST</span> Authenticate and get JWT token</p>
+                    <h4>Request:</h4>
+                    <pre><code class="language-json">{
+  "email": "user@example.com",
+  "password": "securePassword123"
+}</code></pre>
+                    <h4>Response (200 OK):</h4>
+                    <pre><code class="language-json">{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}</code></pre>
+                </div>
+                
+                <h3 id="health">GET /admin/healthcheck</h3>
+                <div class="endpoint">
+                    <p><span class="method method-get">GET</span> Check API health (no auth)</p>
+                    <h4>Response (200 OK):</h4>
+                    <pre><code class="language-json">{
+  "status": "OK",
+  "n_charge_points": 1454,
+  "n_charge_points_online": 1416
+}</code></pre>
+                </div>
+                
+                <h3 id="points-list">GET /points</h3>
+                <div class="endpoint">
+                    <p><span class="method method-get">GET</span> List all charging points</p>
+                    <h4>Query Parameters:</h4>
+                    <ul>
+                        <li><code>status</code> - Filter by status</li>
+                        <li><code>lat, lng, radius</code> - Radius search</li>
+                        <li><code>min_lat, max_lat, min_lon, max_lon</code> - Bounding box</li>
+                        <li><code>format</code> - json or csv</li>
+                    </ul>
+                    <h4>Example:</h4>
+                    <pre><code class="language-bash">curl "http://localhost:9876/api/points?lat=37.9838&lng=23.7275&radius=50"</code></pre>
+                </div>
+                
+                <h3 id="point-detail">GET /point/{id}</h3>
+                <div class="endpoint">
+                    <p><span class="method method-get">GET</span> Get point details</p>
+                    <h4>Example:</h4>
+                    <pre><code class="language-bash">curl http://localhost:9876/api/point/3508687</code></pre>
+                </div>
+                
+                <h3 id="reserve">POST /reserve/{id} or /reserve/{id}/{minutes}</h3>
+                <div class="endpoint">
+                    <p><span class="method method-post">POST</span> Reserve a charging point</p>
+                    <p><strong>Auth Required</strong></p>
+                    <h4>Examples:</h4>
+                    <pre><code class="language-bash"># 30 minutes (default)
+curl -X POST http://localhost:9876/api/reserve/3508687 \
+  -H "Authorization: Bearer token123..."
+
+# Custom 45 minutes
+curl -X POST http://localhost:9876/api/reserve/3508687/45 \
+  -H "Authorization: Bearer token123..."</code></pre>
+                </div>
+                
+                <h3 id="newsession">POST /newsession</h3>
+                <div class="endpoint">
+                    <p><span class="method method-post">POST</span> Record a charging session</p>
+                    <p><strong>Auth Required</strong></p>
+                    <h4>Request:</h4>
+                    <pre><code class="language-json">{
+  "pointid": "3508687",
+  "starttime": "2025-12-25 10:00",
+  "endtime": "2025-12-25 11:30",
+  "startsoc": 20,
+  "endsoc": 80,
+  "totalkwh": 45.5,
+  "kwhprice": 0.35,
+  "amount": 15.93
+}</code></pre>
+                </div>
+                
+                <h3 id="sessions">GET /sessions/{id}/{from}/{to}</h3>
+                <div class="endpoint">
+                    <p><span class="method method-get">GET</span> Get charging sessions</p>
+                    <p><strong>Auth Required</strong></p>
+                    <h4>Path Params:</h4>
+                    <ul>
+                        <li><code>id</code> - Point ID</li>
+                        <li><code>from</code> - Start date (YYYYMMDD)</li>
+                        <li><code>to</code> - End date (YYYYMMDD)</li>
+                    </ul>
+                    <h4>Example:</h4>
+                    <pre><code class="language-bash">curl -H "Authorization: Bearer token123..." \
+  "http://localhost:9876/api/sessions/3508687/20251201/20251225"</code></pre>
+                </div>
+            </section>
+            
+            <!-- Errors -->
+            <section id="errors">
+                <h2>❌ Error Handling</h2>
+                
+                <h3>Error Response Format</h3>
+                <pre><code class="language-json">{
+  "error_code": "VALIDATION_ERROR",
+  "error_message": "Description",
+  "timestamp": "2025-12-25 14:30"
+}</code></pre>
+                
+                <h3>Error Codes</h3>
+                <table>
+                    <tr>
+                        <th>Code</th>
+                        <th>HTTP Status</th>
+                        <th>Meaning</th>
+                    </tr>
+                    <tr>
+                        <td>VALIDATION_ERROR</td>
+                        <td>400</td>
+                        <td>Input validation failed</td>
+                    </tr>
+                    <tr>
+                        <td>INVALID_CREDENTIALS</td>
+                        <td>401</td>
+                        <td>Wrong email/password</td>
+                    </tr>
+                    <tr>
+                        <td>UNAUTHORIZED</td>
+                        <td>401</td>
+                        <td>Missing or invalid token</td>
+                    </tr>
+                    <tr>
+                        <td>DUPLICATE_EMAIL</td>
+                        <td>409</td>
+                        <td>Email already registered</td>
+                    </tr>
+                    <tr>
+                        <td>NOT_FOUND</td>
+                        <td>404</td>
+                        <td>Resource doesn't exist</td>
+                    </tr>
+                </table>
+            </section>
+            
+            <!-- Status -->
+            <section id="status">
+                <h2>📊 Status Values</h2>
+                
+                <table>
+                    <tr>
+                        <th>Status</th>
+                        <th>Meaning</th>
+                    </tr>
+                    <tr>
+                        <td>AVAILABLE</td>
+                        <td>Ready for charging</td>
+                    </tr>
+                    <tr>
+                        <td>OCCUPIED</td>
+                        <td>Currently charging</td>
+                    </tr>
+                    <tr>
+                        <td>RESERVED</td>
+                        <td>Reserved for future use</td>
+                    </tr>
+                    <tr>
+                        <td>FAULTED</td>
+                        <td>Hardware malfunction</td>
+                    </tr>
+                    <tr>
+                        <td>OFFLINE</td>
+                        <td>Not operational</td>
+                    </tr>
+                </table>
+            </section>
+            
+            <!-- Examples -->
+            <section id="examples">
+                <h2>💡 Complete Workflow</h2>
+                
+                <pre><code class="language-bash">#!/bin/bash
+
+# 1. Login
+TOKEN=$(curl -s -X POST http://localhost:9876/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"pass123"}' \
+  | jq -r '.token')
+
+# 2. Find points
+curl "http://localhost:9876/api/points?lat=37.9838&lng=23.7275&radius=50" | jq
+
+# 3. Reserve
+curl -X POST http://localhost:9876/api/reserve/3508687/45 \
+  -H "Authorization: Bearer $TOKEN" | jq
+
+# 4. Record session
+curl -X POST http://localhost:9876/api/newsession \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"pointid":"3508687","starttime":"2025-12-25 10:00",...}'</code></pre>
+            </section>
+            
+            <!-- FAQ -->
+            <section id="faq">
+                <h2>❓ Troubleshooting</h2>
+                
+                <h3>401 Unauthorized</h3>
+                <div class="note">
+                    <strong>Check:</strong> Is token in header? Valid format: <code>Authorization: Bearer &lt;token&gt;</code>. Tokens expire after 24 hours.
+                </div>
+                
+                <h3>404 Not Found</h3>
+                <div class="note">
+                    <strong>Check:</strong> Is point ID correct? List all points: <code>GET /points</code>
+                </div>
+                
+                <h3>400 Bad Request</h3>
+                <div class="note">
+                    <strong>Check:</strong> JSON syntax valid? Required fields present? Date format correct: <code>YYYY-MM-DD HH:MM</code> or <code>YYYYMMDD</code>
+                </div>
+                
+                <h3>204 No Content</h3>
+                <div class="success">
+                    <strong>NOT an error!</strong> No results found. Try broader filters.
+                </div>
+            </section>
+        </div>
+    </main>
+    
+    <footer>
+        <p><strong>EV Charging Network API</strong> v1.0.0 | Generated January 5, 2026</p>
+    </footer>
+    
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+</html>
