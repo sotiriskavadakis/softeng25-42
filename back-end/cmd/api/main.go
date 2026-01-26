@@ -64,6 +64,9 @@ func main() {
 	// 1. Setup Router with default middleware (Logger, Recovery)
 	r := gin.Default()
 
+	r.StaticFile("/success.html", "./public/success.html")
+	r.StaticFile("/cancel.html", "./public/cancel.html")
+
 	// 2. Route Grouping (Cleaner URL structure)
 	auth := r.Group("/api/auth")
 	{
@@ -93,6 +96,8 @@ func main() {
 		apiProtected.POST("/updpoint/:id", handlers.UpdatePoint)
 		apiProtected.POST("/newsession", handlers.NewSession)
 		apiProtected.GET("/sessions/:id/:from/:to", handlers.GetSessions)
+
+		apiProtected.POST("/payment/create-session", handlers.CreatePaymentSession)
 	}
 
 	// 3. Start Server

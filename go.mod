@@ -8,6 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/lib/pq v1.10.9
+	github.com/stripe/stripe-go/v76 v76.25.0
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.46.0
 	gorm.io/driver/postgres v1.6.0
