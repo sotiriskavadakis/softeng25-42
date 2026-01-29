@@ -98,6 +98,8 @@ func main() {
 		apiProtected.GET("/sessions/:id/:from/:to", handlers.GetSessions)
 
 		apiProtected.POST("/payment/create-session", handlers.CreatePaymentSession)
+		apiProtected.POST("/payment/capture", handlers.CapturePayment)
+		apiProtected.POST("/payment/cancel", handlers.CancelPayment)
 	}
 
 	// 3. Start Server

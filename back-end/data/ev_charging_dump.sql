@@ -105,8 +105,12 @@ CREATE TABLE public.charging_sessions (
     card_id bigint,
     start_time timestamp with time zone,
     end_time timestamp with time zone,
+    start_soc integer,
+    end_soc integer,
     total_kwh numeric,
-    total_cost numeric
+    kwh_price numeric,
+    amount numeric,
+    payment_intent_id text
 );
 
 
@@ -1902,7 +1906,7 @@ COPY public.chargers (charger_id, station_id, type_id, status, max_power_kw) FRO
 -- Data for Name: charging_sessions; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.charging_sessions (session_id, usr_id, charger_id, card_id, start_time, end_time, total_kwh, total_cost) FROM stdin;
+COPY public.charging_sessions (session_id, usr_id, charger_id, card_id, start_time, end_time, start_soc, end_soc, total_kwh, kwh_price, amount, payment_intent_id) FROM stdin;
 \.
 
 

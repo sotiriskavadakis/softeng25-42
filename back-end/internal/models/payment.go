@@ -6,4 +6,5 @@ type CreatePaymentRequest struct {
 
 type CreatePaymentResponse struct {
     CheckoutURL string `json:"checkout_url"` 
+    PaymentIntentID string `json:"payment_intent_id"`
 }

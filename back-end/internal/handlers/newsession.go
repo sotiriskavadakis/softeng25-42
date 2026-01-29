@@ -27,6 +27,8 @@ type NewSessionRequest struct {
 	KwhPrice float64 `json:"kwhprice" binding:"required" example:"0.35"`
 	// Total amount charged for the session in local currency
 	Amount float64 `json:"amount" binding:"required" example:"15.93"`
+	// ID of the payment intent from Stripe
+	PaymentIntentID string `json:"payment_intent_id" binding:"required"`
 }
 
 // NewSession godoc
@@ -74,9 +76,9 @@ func NewSession(c *gin.Context) {
 	// Insert charging session
 	err = db.Exec(`
 		INSERT INTO charging_sessions 
-		(charger_id, start_time, end_time, start_soc, end_soc, total_kwh, kwh_price, amount)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, req.PointID, startTime, endTime, req.StartSoc, req.EndSoc, req.TotalKwh, req.KwhPrice, req.Amount).Error
+		(charger_id, start_time, end_time, start_soc, end_soc, total_kwh, kwh_price, amount, payment_intent_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, req.PointID, startTime, endTime, req.StartSoc, req.EndSoc, req.TotalKwh, req.KwhPrice, req.Amount, req.PaymentIntentID).Error
 
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Database Error", err.Error())

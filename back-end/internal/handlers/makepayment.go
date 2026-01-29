@@ -62,6 +62,9 @@ func CreatePaymentSession(c *gin.Context) {
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
 		SuccessURL: stripe.String(domain + "/success.html"),
 		CancelURL:  stripe.String(domain + "/cancel.html"),
+		PaymentIntentData: &stripe.CheckoutSessionPaymentIntentDataParams{
+			CaptureMethod: stripe.String("manual"),
+		},
 	}
 
 	sess, err := session.New(params)
@@ -71,7 +74,8 @@ func CreatePaymentSession(c *gin.Context) {
 	}
 
 	resp := models.CreatePaymentResponse{
-		CheckoutURL: sess.URL,
+		CheckoutURL:     sess.URL,
+		PaymentIntentID: sess.PaymentIntent.ID,
 	}
 
 	c.JSON(http.StatusOK, resp)

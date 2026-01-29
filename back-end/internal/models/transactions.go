@@ -13,14 +13,16 @@ type Reservation struct {
 }
 
 type ChargingSession struct {
-	ID        uint      `gorm:"primaryKey;column:session_id" json:"id"`
-	UserID    uint      `gorm:"column:usr_id" json:"user_id"`
-	ChargerID uint      `json:"charger_id"`
-	CardID    uint      `json:"card_id"`
-	
-	StartTime time.Time `json:"start_time"`
-	EndTime   time.Time `json:"end_time"`
-	
-	TotalKwh  float64   `json:"total_kwh"`
-	TotalCost float64   `json:"total_cost"`
+	ID              uint      `gorm:"primaryKey;column:session_id" json:"id"`
+	UserID          uint      `gorm:"column:usr_id" json:"user_id"`
+	ChargerID       uint      `json:"charger_id"`
+	CardID          uint      `json:"card_id"`
+	StartTime       time.Time `json:"start_time"`
+	EndTime         time.Time `json:"end_time"`
+	StartSoc        int       `json:"start_soc"`
+	EndSoc          int       `json:"end_soc"`
+	TotalKwh        float64   `json:"total_kwh"`
+	KwhPrice        float64   `json:"kwh_price"`
+	Amount          float64   `gorm:"column:amount" json:"amount"`
+	PaymentIntentID string    `json:"payment_intent_id"`
 }
