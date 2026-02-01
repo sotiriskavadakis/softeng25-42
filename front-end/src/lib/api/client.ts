@@ -31,8 +31,28 @@ export function isAuthenticated(): boolean {
 // API Client
 // =============================================================================
 
-function getProxyUrl(): string {
-  return `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/api-proxy`;
+const API_BASE_URL = "http://localhost:9876";
+
+function getApiUrl(action: string): string {
+  // Map actions to actual API endpoints
+  const actionMap: Record<string, string> = {
+    "healthcheck": "/api/admin/healthcheck",
+    "register": "/api/auth/register",
+    "login": "/api/auth/login",
+    "points": "/api/points",
+    "point": "/api/point",
+    "point-details": "/api/point",
+    "pointstatus": "/api/pointstatus",
+    "reserve": "/api/reserve",
+    "updpoint": "/api/updpoint",
+    "newsession": "/api/newsession",
+    "sessions": "/api/sessions",
+    "payment/create-session": "/api/payment/create-session",
+    "payment/capture": "/api/payment/capture",
+    "payment/cancel": "/api/payment/cancel",
+  };
+  
+  return `${API_BASE_URL}${actionMap[action] || `/api/${action}`}`;
 }
 
 interface ApiRequestOptions {
@@ -66,19 +86,43 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { method = "GET", body, requiresAuth = false } = options;
   
-  const url = new URL(getProxyUrl());
-  url.searchParams.set("action", action);
+  // Clone params to avoid mutating the original
+  const pathParams = { ...params };
   
-  for (const [key, value] of Object.entries(params)) {
+  // Build URL: append path params like :id to the base action URL
+  let endpoint = getApiUrl(action);
+  
+  // Handle path parameters (e.g., id, pointid, from, to, minutes)
+  if (pathParams.pointid) {
+    endpoint += `/${pathParams.pointid}`;
+    delete pathParams.pointid;
+  }
+  if (pathParams.id) {
+    endpoint += `/${pathParams.id}`;
+    delete pathParams.id;
+  }
+  if (pathParams.from && pathParams.to) {
+    endpoint += `/${pathParams.from}/${pathParams.to}`;
+    delete pathParams.from;
+    delete pathParams.to;
+  }
+  if (pathParams.minutes) {
+    endpoint += `/${pathParams.minutes}`;
+    delete pathParams.minutes;
+  }
+  
+  const url = new URL(endpoint);
+  
+  // Add remaining params as query string
+  for (const [key, value] of Object.entries(pathParams)) {
     url.searchParams.set(key, value);
   }
 
-  console.log(`[API] ${method} ${action}`, params);
+  console.log(`[API] ${method} ${action}`, url.toString());
 
   // Build headers
   const headers: Record<string, string> = {
     "Accept": "application/json",
-    "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   };
 
   // Add Content-Type for JSON bodies

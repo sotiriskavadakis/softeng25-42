@@ -64,6 +64,21 @@ func main() {
 	// 1. Setup Router with default middleware (Logger, Recovery)
 	r := gin.Default()
 
+	// CORS middleware - allow frontend on port 8080
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "http://localhost:8080")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+		c.Header("Access-Control-Allow-Credentials", "true")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	})
+
 	r.StaticFile("/success.html", "./public/success.html")
 	r.StaticFile("/cancel.html", "./public/cancel.html")
 
