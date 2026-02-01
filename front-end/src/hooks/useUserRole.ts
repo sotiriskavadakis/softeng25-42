@@ -1,29 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken, apiFetch } from "@/lib/api/client";
 
 export type AppRole = "admin" | "user";
+
+interface UserProfileResponse {
+  role?: string;
+  is_admin?: boolean;
+}
 
 export function useUserRole() {
   return useQuery({
     queryKey: ["user-role"],
     queryFn: async (): Promise<AppRole | null> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) return null;
+      const token = getAuthToken();
+      if (!token) return null;
 
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching user role:", error);
-        return null;
+      try {
+        // Try to get user profile/role from the local API
+        // If your API has a user profile endpoint, use it here
+        const response = await apiFetch<UserProfileResponse>("user/profile", {});
+        return response.is_admin ? "admin" : "user";
+      } catch {
+        // If profile endpoint doesn't exist or fails, default to "user"
+        return "user";
       }
-
-      return (data?.role as AppRole) || "user";
     },
+    enabled: !!getAuthToken(), // Only run query if authenticated
   });
 }
 

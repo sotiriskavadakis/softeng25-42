@@ -1,21 +1,11 @@
 /**
  * Centralized Database Client Module
  * 
- * All database access should go through this module.
- * Provides error handling, retry logic, and consistent patterns.
+ * All database access should go through the local API at localhost:9876.
+ * This module provides error handling, retry logic, and consistent patterns.
  */
 
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-
-// Re-export the supabase client for direct access when needed
-export { supabase };
-
-// Type exports for convenience
-export type Tables = Database["public"]["Tables"];
-export type Enums = Database["public"]["Enums"];
-
-export type TableName = keyof Tables;
+import { apiFetch, getAuthToken } from "@/lib/api/client";
 
 // Error types
 export class DatabaseError extends Error {
@@ -71,10 +61,7 @@ export async function withRetry<T>(
       lastError = error instanceof Error ? error : new Error(String(error));
 
       // Don't retry on auth errors or validation errors
-      if (
-        error instanceof AuthenticationError ||
-        (error instanceof DatabaseError && error.code === "PGRST116") // No rows returned
-      ) {
+      if (error instanceof AuthenticationError) {
         throw error;
       }
 
@@ -93,12 +80,15 @@ export async function withRetry<T>(
 
 // Helper to get the current authenticated user
 export async function getCurrentUser() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error) throw new DatabaseError(error.message, error.code);
-  return user;
+  const token = getAuthToken();
+  if (!token) return null;
+  
+  try {
+    const user = await apiFetch<{ id: string; email: string }>("user/profile", {});
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 // Helper to require authentication
@@ -108,17 +98,17 @@ export async function requireAuth() {
   return user;
 }
 
-// Helper to handle Supabase errors
-export function handleSupabaseError(error: { message: string; code?: string; details?: string; hint?: string }): never {
+// Helper to handle API errors
+export function handleApiError(error: { message: string; code?: string; details?: string; hint?: string }): never {
   throw new DatabaseError(error.message, error.code, error.details, error.hint);
 }
 
 // Schema introspection utilities
 export const schema = {
   /**
-   * Get table names from the types
+   * Get table names from the database
    */
-  getTableNames(): TableName[] {
+  getTableNames() {
     return [
       "charger_types",
       "chargers",
@@ -132,17 +122,17 @@ export const schema = {
       "saved_cards",
       "stations",
       "user_roles",
-    ] as TableName[];
+    ];
   },
 
   /**
    * Get enum values
    */
-  getEnumValues<E extends keyof Enums>(enumName: E): Enums[E][] {
+  getEnumValues(enumName: string): string[] {
     const enumMaps: Record<string, string[]> = {
       app_role: ["admin", "user"],
       charger_status: ["AVAILABLE", "OCCUPIED", "RESERVED", "FAULTED", "OFFLINE"],
     };
-    return (enumMaps[enumName] || []) as Enums[E][];
+    return enumMaps[enumName] || [];
   },
 };

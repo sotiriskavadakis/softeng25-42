@@ -1,8 +1,7 @@
 /**
  * Schema Metadata
  * 
- * Derived from the Supabase types file - provides detailed schema information
- * for the Data Dictionary and type-safe operations.
+ * Provides detailed schema information for the Data Dictionary and type-safe operations.
  */
 
 export interface ColumnInfo {
