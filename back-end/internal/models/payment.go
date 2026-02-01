@@ -8,3 +8,8 @@ type CreatePaymentResponse struct {
     CheckoutURL string `json:"checkout_url"` 
     PaymentIntentID string `json:"payment_intent_id"`
 }
+
+type StatusResponse struct {
+    Status string      `json:"status"`
+    Data   interface{} `json:"data,omitempty"`
+}
