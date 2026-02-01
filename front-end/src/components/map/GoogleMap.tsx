@@ -6,7 +6,7 @@ import { Zap, ZoomIn, ZoomOut, Loader2, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { LocationSearch } from "./LocationSearch";
-
+import { SystemStatusBadge } from "./SystemStatusBadge";
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "AIzaSyCIQx4cPi6G5WvP4fypr5GP8wELU71uYT0";
 
 // Libraries to load - must be a constant to prevent reload loops
@@ -446,24 +446,27 @@ export function GoogleMapComponent({
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm px-4 py-3 rounded-lg shadow-md border border-border/50 z-20">
-        <div className="flex flex-col gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-green-500" />
+      {/* System Status Badge - bottom left, compact */}
+      <SystemStatusBadge className="absolute bottom-4 left-4 z-20" />
+
+      {/* Legend - bottom right */}
+      <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-md border border-border/50 z-20">
+        <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-success" />
             <span className="text-muted-foreground">Available</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-gray-500" />
-            <span className="text-muted-foreground">All in use</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground" />
+            <span className="text-muted-foreground">Busy</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-amber-500" />
-            <span className="text-muted-foreground">Under repair</span>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-warning" />
+            <span className="text-muted-foreground">Repair</span>
           </div>
           {userLocation && (
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-blue-500" />
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary" />
               <span className="text-muted-foreground">You</span>
             </div>
           )}

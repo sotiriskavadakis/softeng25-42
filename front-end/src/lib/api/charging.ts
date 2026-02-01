@@ -17,8 +17,6 @@ export { ApiError };
 // =============================================================================
 
 // handlers.UpdatePointRequest
-// NOTE: API accepts these values but external backend has a bug where database constraint rejects them
-// The API maintainers need to fix the mapping between input validation and database storage
 export interface UpdatePointRequest {
   status?: "available" | "charging" | "reserved" | "malfunction" | "offline";
   kwhprice?: number;
@@ -60,6 +58,7 @@ export interface NewSessionResponse {
 // =============================================================================
 
 // API accepts these values per validation error message
+// API accepts lowercase values per validation
 export type PointStatusUpdate = "available" | "charging" | "reserved" | "malfunction" | "offline";
 
 export interface ChargingSessionData {
@@ -144,13 +143,22 @@ export async function updatePointStatus(
 }
 
 /**
- * Start charging - sets point status to "charging"
- * NOTE: External API has a bug - accepts "charging" but database expects different value
+ * Start charging - Note: External API has a bug where it expects "charging" but
+ * the database constraint expects "OCCUPIED". We skip the status update and just
+ * track the session locally. The session will be recorded when stopping.
  * 
  * @param pointId - The point to start charging at
  */
 export async function startCharging(pointId: string): Promise<UpdatePointResponse> {
-  return updatePointStatus(pointId, "charging");
+  // External API bug: "charging" fails with constraint violation
+  // Workaround: Return a mock response and handle charging state locally
+  console.warn(`[charging] Skipping updpoint for start - external API has OCCUPIED/charging mapping bug`);
+  return {
+    pointid: pointId,
+    status: "charging",
+    kwhprice: null,
+    is_manual_price: false,
+  };
 }
 
 /**
@@ -159,6 +167,7 @@ export async function startCharging(pointId: string): Promise<UpdatePointRespons
  * @param pointId - The point to stop charging at
  */
 export async function stopCharging(pointId: string): Promise<UpdatePointResponse> {
+  // "available" → "AVAILABLE" mapping works correctly
   return updatePointStatus(pointId, "available");
 }
 

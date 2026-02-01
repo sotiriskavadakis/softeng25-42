@@ -84,7 +84,7 @@ function groupPointsByLocation(points: ChargingPoint[]): LocationWithChargers[] 
 
     return {
       locationId: key, // Use coordinate key as unique ID
-      name: first.providerName,
+      name: first.providerName !== "Unknown Provider" ? first.providerName : `Station ${key.split(',')[0].slice(-4)}`,
       address: `${first.latitude.toFixed(4)}, ${first.longitude.toFixed(4)}`,
       latitude: first.latitude,
       longitude: first.longitude,

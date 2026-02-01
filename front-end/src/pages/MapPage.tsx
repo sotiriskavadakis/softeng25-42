@@ -1,10 +1,17 @@
 import { useState, useMemo, useCallback } from "react";
 import { TopNav } from "@/components/layout/TopNav";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { Button } from "@/components/ui/button";
 import { SearchFilters, FilterState } from "@/components/map/SearchFilters";
 import { GoogleMapComponent } from "@/components/map/GoogleMap";
 import { LocationPopup } from "@/components/map/LocationPopup";
-import { HealthCheckWidget } from "@/components/map/HealthCheckWidget";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ChargingSessionOverlay } from "@/components/session";
 import { 
   useChargingPoints, 
@@ -17,7 +24,8 @@ import { useChargingSession } from "@/hooks/useChargingSession";
 import { AnimatePresence } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Loader2, SearchX, RotateCcw, MapPin, WifiOff, RefreshCw } from "lucide-react";
+import { Loader2, SearchX, MapPin, WifiOff, RefreshCw, SlidersHorizontal, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function MapPage() {
   const navigate = useNavigate();
@@ -26,12 +34,13 @@ export default function MapPage() {
   const [selectedCharger, setSelectedCharger] = useState<ChargerInfo | null>(null);
   const [showChargingOverlay, setShowChargingOverlay] = useState(false);
   const [filters, setFilters] = useState<FilterState | null>(null);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Charging session management
   const chargingSession = useChargingSession({
     onSessionEnded: () => {
       setShowChargingOverlay(false);
-      navigate("/sessions");
+      navigate("/profile");
     },
   });
 
@@ -80,17 +89,22 @@ export default function MapPage() {
         if (!hasChargerInRange) return false;
       }
 
-      // Filter by available after time - chargers that will be available after the specified time
-      // This is a placeholder filter - the actual availability check would need reservation data
-      // For now, we show all chargers when this filter is set
-      // In a full implementation, this would check against reservation end times
-
       return true;
     });
   }, [locations, filters]);
 
+  const activeFilterCount = useMemo(() => {
+    if (!filters) return 0;
+    let count = 0;
+    if (filters.status.length > 0 && (filters.status.length !== 1 || filters.status[0] !== "AVAILABLE")) count++;
+    if (filters.powerRange[0] > 2 || filters.powerRange[1] < 300) count++;
+    if (filters.availableWithinMinutes) count++;
+    return count;
+  }, [filters]);
+
   const handleSearch = (newFilters: FilterState) => {
     setFilters(newFilters);
+    setShowMobileFilters(false);
     
     // Calculate filtered count for toast
     const count = locations.filter((location) => {
@@ -178,43 +192,65 @@ export default function MapPage() {
     setShowChargingOverlay(false);
   };
 
-  // Calculate total stats
-  const totalAvailable = useMemo(() => 
-    filteredLocations.reduce((sum, loc) => sum + loc.availableChargers, 0),
-    [filteredLocations]
-  );
-
-  // Show initial loading only before we have bounds
-  const showInitialLoading = !mapBounds && isLoading;
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <TopNav />
 
-      <main className="p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Quick stats bar */}
-          <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
+      {/* Main content - full height on mobile */}
+      <main className="flex-1 flex flex-col lg:block lg:p-6">
+        <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col lg:block">
+          
+          {/* Mobile header bar with stats and filter button */}
+          <div className="flex items-center justify-between px-4 py-2.5 lg:py-0 lg:mb-4 border-b lg:border-0 border-border bg-card lg:bg-transparent">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4 text-primary" />
-              <span><strong className="text-foreground">{filteredLocations.length}</strong> locations in view</span>
+              <span>
+                <strong className="text-foreground">{filteredLocations.length}</strong> locations
+              </span>
+              {isFetching && !isLoading && (
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-success" />
-              <span><strong className="text-foreground">{totalAvailable}</strong> chargers available</span>
-            </div>
-            {isFetching && !isLoading && (
-              <div className="flex items-center gap-1 text-primary">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span className="text-xs">Updating...</span>
-              </div>
-            )}
+            
+            {/* Mobile filter button */}
+            <Sheet open={showMobileFilters} onOpenChange={setShowMobileFilters}>
+              <SheetTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="lg:hidden gap-2 h-8"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge variant="default" className="h-5 w-5 p-0 flex items-center justify-center text-[10px]">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl">
+                <SheetHeader className="pb-4 border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <SheetTitle>Filter Chargers</SheetTitle>
+                    {activeFilterCount > 0 && (
+                      <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-xs h-7">
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
+                </SheetHeader>
+                <div className="py-4 overflow-y-auto max-h-[calc(85vh-8rem)]">
+                  <SearchFilters onSearch={handleSearch} onClear={handleClearFilters} isMobile />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Map Area */}
-            <div className="flex-1 relative">
-              <div className="rounded-xl overflow-hidden border border-border shadow-sm h-[500px] lg:h-[600px]">
+          <div className="flex-1 flex flex-col lg:flex-row gap-6 lg:gap-6">
+            {/* Map Area - full width on mobile, fills remaining height */}
+            <div className="flex-1 relative min-h-0">
+              <div className="h-full lg:h-[600px] lg:rounded-xl overflow-hidden lg:border lg:border-border lg:shadow-sm">
                 {error && !locations.length ? (
                   <div className="flex flex-col items-center justify-center h-full bg-muted/50 gap-4 p-6 text-center">
                     <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
@@ -240,23 +276,8 @@ export default function MapPage() {
                       {isRefetching ? "Retrying..." : "Try Again"}
                     </Button>
                   </div>
-                ) : filteredLocations.length === 0 && filters && !isLoading ? (
-                  <div className="flex flex-col items-center justify-center h-full bg-muted/50 gap-4 p-6 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                      <SearchX className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg text-foreground">No locations found</h3>
-                      <p className="text-muted-foreground text-sm mt-1">
-                        No charging stations match your filters in this area.
-                      </p>
-                    </div>
-                    <Button variant="outline" onClick={handleClearFilters} className="gap-2">
-                      <RotateCcw className="h-4 w-4" />
-                      Clear Filters
-                    </Button>
-                  </div>
                 ) : (
+                  /* Always show map - empty results just means no markers */
                   <GoogleMapComponent 
                     locations={filteredLocations} 
                     onLocationClick={handleLocationClick}
@@ -265,29 +286,44 @@ export default function MapPage() {
                     isLoading={isFetching && !locations.length}
                   />
                 )}
-              </div>
-
-              {/* Location Popup - appears over the map */}
-              <AnimatePresence>
-                {selectedLocation && !chargingSession.isCharging && (
-                  <LocationPopup
-                    location={selectedLocation}
-                    onClose={handleClosePopup}
-                    onNavigate={handleNavigate}
-                    onSelectCharger={handleSelectCharger}
-                  />
+                
+                {/* Show "no results" overlay on the map when filters yield nothing */}
+                {filteredLocations.length === 0 && filters && !isLoading && !error && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md border border-border/50">
+                    <div className="flex items-center gap-2 text-sm">
+                      <SearchX className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">No stations match filters</span>
+                      <Button variant="ghost" size="sm" onClick={handleClearFilters} className="h-7 px-2 text-xs">
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
                 )}
-              </AnimatePresence>
+              </div>
             </div>
 
-            {/* Search Filters Sidebar */}
-            <div className="w-full lg:w-80 shrink-0 space-y-4">
-              <HealthCheckWidget />
+            {/* Search Filters Sidebar - Desktop only */}
+            <div className="hidden lg:block w-80 shrink-0 space-y-4">
               <SearchFilters onSearch={handleSearch} onClear={handleClearFilters} />
             </div>
           </div>
         </div>
+        
+        {/* Location Popup - appears ABOVE the map on top of content */}
+        <AnimatePresence>
+          {selectedLocation && !chargingSession.isCharging && (
+            <LocationPopup
+              location={selectedLocation}
+              onClose={handleClosePopup}
+              onNavigate={handleNavigate}
+              onSelectCharger={handleSelectCharger}
+            />
+          )}
+        </AnimatePresence>
       </main>
+
+      {/* Bottom Navigation - mobile only */}
+      <BottomNav />
 
       {/* Charging Session Overlay */}
       <AnimatePresence>

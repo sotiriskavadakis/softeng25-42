@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { TopNav } from "@/components/layout/TopNav";
+import { BottomNav } from "@/components/layout/BottomNav";
 import { KPICard } from "@/components/ui/kpi-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,7 +53,7 @@ export default function UserStatsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <TopNav />
       
       <main className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
@@ -336,6 +337,8 @@ export default function UserStatsPage() {
           </Card>
         </motion.div>
       </main>
+      
+      <BottomNav />
     </div>
   );
 }

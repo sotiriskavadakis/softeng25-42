@@ -6,7 +6,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { User, LogOut, Loader2 } from "lucide-react";
+import { User, LogOut, Loader2, BarChart3, Map } from "lucide-react";
 import empowerLogo from "@/assets/empower-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState } from "react";
@@ -33,50 +33,78 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
   const currentPath = location.pathname;
 
   const userTabs = [
-    { label: "MAP", path: "/" },
-    { label: "STATS", path: "/stats" },
-    { label: "SESSIONS", path: "/sessions" },
+    { label: "Map", path: "/", icon: Map },
+    { label: "Stats", path: "/stats", icon: BarChart3 },
   ];
 
   return (
-    <header className="bg-card border-b border-border shadow-sm">
-      <div className="flex items-center justify-between max-w-7xl mx-auto px-4 md:px-6 py-3">
+    <header className="bg-card border-b border-border shadow-sm sticky top-0 z-40">
+      <div className="flex items-center justify-between max-w-7xl mx-auto px-3 md:px-6 py-2.5 md:py-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center group">
+        <Link to="/" className="flex items-center group shrink-0">
           <img 
             src={empowerLogo} 
             alt="EMPower" 
-            className="h-8 w-auto transition-transform group-hover:scale-105"
+            className="h-7 md:h-8 w-auto transition-transform group-hover:scale-105"
           />
         </Link>
 
         {/* Navigation Tabs */}
-        <nav className="flex items-center gap-1 md:gap-2">
-          {userTabs.map((tab) => {
-            const isActive = tab.path === currentPath || 
-              (tab.path === "/" && currentPath === "/map");
-            
-            return (
-              <Link key={tab.label} to={tab.path}>
-                <Button
-                  variant={isActive ? "default" : "ghost"}
-                  size="sm"
-                  className={cn(
-                    "font-medium px-4",
-                    isActive 
-                      ? "bg-primary text-primary-foreground shadow-sm" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  )}
-                >
-                  {tab.label}
-                </Button>
-              </Link>
-            );
-          })}
+        <nav className="flex items-center gap-1">
+          {/* Desktop tabs */}
+          <div className="hidden md:flex items-center gap-1">
+            {userTabs.map((tab) => {
+              const isActive = tab.path === currentPath || 
+                (tab.path === "/" && currentPath === "/map");
+              
+              return (
+                <Link key={tab.label} to={tab.path}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "font-medium px-4",
+                      isActive 
+                        ? "bg-primary text-primary-foreground shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}
+                  >
+                    {tab.label.toUpperCase()}
+                  </Button>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Mobile tabs - icon only */}
+          <div className="flex md:hidden items-center gap-0.5">
+            {userTabs.map((tab) => {
+              const isActive = tab.path === currentPath || 
+                (tab.path === "/" && currentPath === "/map");
+              const Icon = tab.icon;
+              
+              return (
+                <Link key={tab.label} to={tab.path}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className={cn(
+                      "h-9 w-9 p-0",
+                      isActive 
+                        ? "bg-primary text-primary-foreground" 
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </Button>
+                </Link>
+              );
+            })}
+          </div>
 
           {/* Auth Button */}
           {isLoading ? (
-            <Button variant="ghost" size="sm" className="ml-2" disabled>
+            <Button variant="ghost" size="sm" className="ml-1 md:ml-2 h-9 w-9 p-0" disabled>
               <Loader2 className="h-4 w-4 animate-spin" />
             </Button>
           ) : isAuthenticated ? (
@@ -85,7 +113,7 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="font-medium px-4 ml-2 gap-2"
+                  className="font-medium ml-1 md:ml-2 h-9 px-2.5 md:px-4 gap-2"
                 >
                   <User className="h-4 w-4" />
                   <span className="hidden md:inline">Account</span>
@@ -121,9 +149,10 @@ export function TopNav({ isAdmin = false }: TopNavProps) {
               <Button
                 variant="default"
                 size="sm"
-                className="font-medium px-4 ml-2"
+                className="font-medium ml-1 md:ml-2 h-9 px-3 md:px-4"
               >
-                LOG IN
+                <span className="hidden md:inline">LOG IN</span>
+                <span className="md:hidden">Login</span>
               </Button>
             </Link>
           )}

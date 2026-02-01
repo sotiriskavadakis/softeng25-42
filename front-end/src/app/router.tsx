@@ -2,7 +2,6 @@ import { Routes, Route } from "react-router-dom";
 import MapPage from "@/pages/MapPage";
 import UserStatsPage from "@/pages/UserStatsPage";
 import ProfilePage from "@/pages/ProfilePage";
-import SessionsPage from "@/pages/SessionsPage";
 import DataDictionaryPage from "@/pages/DataDictionaryPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -26,11 +25,6 @@ export function AppRouter() {
       <Route path="/profile" element={
         <ProtectedRoute>
           <ProfilePage />
-        </ProtectedRoute>
-      } />
-      <Route path="/sessions" element={
-        <ProtectedRoute>
-          <SessionsPage />
         </ProtectedRoute>
       } />
       

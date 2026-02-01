@@ -234,7 +234,10 @@ Deno.serve(async (req) => {
           );
         }
 
-        const { email, password, firstName, lastName } = body;
+        const { email, password, username, first_name, last_name } = body;
+        // Also support camelCase for backwards compatibility
+        const firstName = first_name || body.firstName;
+        const lastName = last_name || body.lastName;
 
         if (!email || !isValidEmail(email)) {
           return new Response(
@@ -253,9 +256,10 @@ Deno.serve(async (req) => {
         console.log(`[api-proxy] Registering user: ${email}`);
         return proxyRequest("POST", "/api/auth/register", JSON.stringify({ 
           email, 
-          password, 
-          firstName, 
-          lastName 
+          password,
+          username,
+          first_name: firstName, 
+          last_name: lastName 
         }));
       }
 

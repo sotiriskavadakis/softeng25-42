@@ -98,7 +98,7 @@ export function LocationPopup({ location, onClose, onNavigate, onSelectCharger }
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-card rounded-xl shadow-xl border border-border overflow-hidden z-30"
+      className="fixed bottom-20 md:bottom-auto md:top-24 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md bg-card rounded-xl shadow-2xl border border-border overflow-hidden z-50"
     >
       {/* Header */}
       <div className="relative p-4 pb-3 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">

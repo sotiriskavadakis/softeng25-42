@@ -2,10 +2,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { Filter, RotateCcw, Search, Zap, Info, Clock } from "lucide-react";
-import {
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { Filter, RotateCcw, Search, Zap, Clock, Plug, DollarSign } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -13,50 +10,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, addHours, setHours, setMinutes } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export interface FilterState {
   status: string[];
   powerRange: [number, number];
-  availableAfter: Date | null;
+  availableWithinMinutes: number | null;
+  kwhPriceMax: number | null;
+  connectorType: string | null;
 }
 
 interface SearchFiltersProps {
   onSearch: (filters: FilterState) => void;
   onClear: () => void;
+  isMobile?: boolean;
 }
 
-// Available statuses from the API (matches normalizeStatus in points.ts)
+// Available statuses from the API
 const STATUS_OPTIONS = [
-  { id: "AVAILABLE", label: "Available", color: "bg-success", description: "Ready to charge" },
-  { id: "BUSY", label: "Busy/Occupied", color: "bg-warning", description: "Currently in use" },
-  { id: "OFFLINE", label: "Offline", color: "bg-muted-foreground", description: "Not operational" },
+  { id: "AVAILABLE", label: "Available", color: "bg-success" },
+  { id: "BUSY", label: "Busy", color: "bg-warning" },
+  { id: "OFFLINE", label: "Offline", color: "bg-muted-foreground" },
 ];
 
-// Power range from dataset (based on API cap field)
+// Connector types - placeholder until API supports
+const CONNECTOR_TYPES = [
+  { id: "CCS2", label: "CCS2" },
+  { id: "TYPE2", label: "Type 2" },
+  { id: "CHADEMO", label: "CHAdeMO" },
+];
+
+// Quick time options
+const TIME_OPTIONS = [
+  { value: "15", label: "15 min" },
+  { value: "30", label: "30 min" },
+  { value: "60", label: "1 hour" },
+  { value: "120", label: "2 hours" },
+];
+
+// Power range
 const POWER_MIN = 2;
 const POWER_MAX = 350;
 
-export function SearchFilters({ onSearch, onClear }: SearchFiltersProps) {
-  const now = new Date();
-  
+export function SearchFilters({ onSearch, onClear, isMobile = false }: SearchFiltersProps) {
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>(["AVAILABLE"]);
   const [powerRange, setPowerRange] = useState<[number, number]>([POWER_MIN, POWER_MAX]);
-  const [selectedHoursAhead, setSelectedHoursAhead] = useState<string>("");
-
-  // Generate hours ahead options (1-24)
-  const hoursAheadOptions = useMemo(() => {
-    return Array.from({ length: 24 }, (_, i) => ({
-      value: (i + 1).toString(),
-      label: i + 1 === 1 ? "1 hour" : `${i + 1} hours`,
-    }));
-  }, []);
-
-  // Calculate the target time based on hours ahead
-  const availableAfterTime = useMemo(() => {
-    if (!selectedHoursAhead) return null;
-    return addHours(now, parseInt(selectedHoursAhead));
-  }, [selectedHoursAhead, now]);
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [selectedConnector, setSelectedConnector] = useState<string>("");
+  const [maxPrice, setMaxPrice] = useState<string>("");
 
   const toggleStatus = (statusId: string) => {
     setSelectedStatuses(prev => 
@@ -66,22 +67,22 @@ export function SearchFilters({ onSearch, onClear }: SearchFiltersProps) {
     );
   };
 
-  const clearAvailableAfter = () => {
-    setSelectedHoursAhead("");
-  };
-
   const handleSearch = () => {
     onSearch({
       status: selectedStatuses,
       powerRange,
-      availableAfter: availableAfterTime,
+      availableWithinMinutes: selectedTime ? parseInt(selectedTime) : null,
+      kwhPriceMax: maxPrice ? parseFloat(maxPrice) : null,
+      connectorType: selectedConnector || null,
     });
   };
 
   const handleClear = () => {
     setSelectedStatuses(["AVAILABLE"]);
     setPowerRange([POWER_MIN, POWER_MAX]);
-    clearAvailableAfter();
+    setSelectedTime("");
+    setSelectedConnector("");
+    setMaxPrice("");
     onClear();
   };
 
@@ -90,161 +91,173 @@ export function SearchFilters({ onSearch, onClear }: SearchFiltersProps) {
     selectedStatuses[0] !== "AVAILABLE" ||
     powerRange[0] !== POWER_MIN || 
     powerRange[1] !== POWER_MAX ||
-    selectedHoursAhead !== "";
+    selectedTime !== "" ||
+    selectedConnector !== "" ||
+    maxPrice !== "";
 
   return (
-    <TooltipProvider>
-      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/30">
+    <div className={cn(
+      "overflow-hidden",
+      !isMobile && "bg-card rounded-xl border border-border shadow-sm"
+    )}>
+      {/* Header - hide on mobile since sheet has its own header */}
+      {!isMobile && (
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-primary" />
-            <h2 className="font-semibold">Search Filters</h2>
+            <h2 className="font-semibold text-sm">Filters</h2>
           </div>
           {hasActiveFilters && (
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-              Active
-            </span>
+            <Badge variant="secondary" className="text-xs">Active</Badge>
           )}
         </div>
+      )}
 
-        <div className="p-5 space-y-6">
-          {/* Status Filter (Multi-select) */}
-          <div>
-            <label className="text-sm font-medium text-foreground mb-3 block">
-              Status
-            </label>
-            <div className="space-y-2">
-              {STATUS_OPTIONS.map((status) => (
-                <button
-                  key={status.id}
-                  onClick={() => toggleStatus(status.id)}
-                  className={cn(
-                    "w-full px-3 py-2.5 rounded-lg border text-sm font-medium transition-all flex items-center gap-3",
-                    selectedStatuses.includes(status.id)
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-background border-border text-foreground hover:border-primary/50 hover:bg-accent/50"
-                  )}
-                >
-                  <div className={cn("w-2.5 h-2.5 rounded-full shrink-0", status.color)} />
-                  <div className="flex-1 text-left">
-                    <span>{status.label}</span>
-                    <p className={cn(
-                      "text-xs font-normal mt-0.5",
-                      selectedStatuses.includes(status.id) 
-                        ? "text-primary-foreground/70" 
-                        : "text-muted-foreground"
-                    )}>
-                      {status.description}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-            {selectedStatuses.length === 0 && (
-              <p className="text-xs text-muted-foreground mt-2">Select at least one status</p>
-            )}
-          </div>
-
-          {/* Power Range Slider */}
-          <div>
-            <label className="text-sm font-medium text-foreground mb-3 block">
-              Power Range (kW)
-            </label>
-            <div className="bg-muted/50 rounded-lg p-4">
-              <Slider
-                value={powerRange}
-                onValueChange={(val) => setPowerRange(val as [number, number])}
-                min={POWER_MIN}
-                max={POWER_MAX}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between items-center text-xs mt-3">
-                <span className="text-muted-foreground">{POWER_MIN} kW</span>
-                <span className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-                  <Zap className="h-3 w-3" />
-                  {powerRange[0]} - {powerRange[1]} kW
-                </span>
-                <span className="text-muted-foreground">{POWER_MAX} kW</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Power Info */}
-          <div className="bg-muted/30 rounded-lg p-3 border border-dashed border-border">
-            <p className="text-xs text-muted-foreground flex items-center gap-2">
-              <Info className="h-3.5 w-3.5 shrink-0" />
-              Power is based on charger capacity (cap) from the API
-            </p>
-          </div>
-
-          {/* Available After Time Picker - Simplified to hours ahead */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" />
-              Available chargers after
-            </label>
-            <p className="text-xs text-muted-foreground">
-              Find chargers that will be available within the next 24 hours
-            </p>
-
-            <Select value={selectedHoursAhead} onValueChange={setSelectedHoursAhead}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select time ahead..." />
-              </SelectTrigger>
-              <SelectContent>
-                {hoursAheadOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label} from now
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Preview selected time */}
-            {availableAfterTime && (
-              <div className="bg-primary/10 rounded-lg p-3 flex items-center justify-between">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">After: </span>
-                  <span className="font-medium text-primary">
-                    {format(availableAfterTime, "EEE, MMM d 'at' HH:mm")}
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAvailableAfter}
-                  className="h-7 px-2 text-xs"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
+      <div className={cn("space-y-5", isMobile ? "pb-4" : "p-4")}>
+        {/* Status Filter - Compact chips */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+            Status
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {STATUS_OPTIONS.map((status) => (
+              <button
+                key={status.id}
+                onClick={() => toggleStatus(status.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5",
+                  selectedStatuses.includes(status.id)
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                <div className={cn("w-2 h-2 rounded-full", status.color)} />
+                {status.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 p-5 pt-0">
-          <Button 
-            variant="outline" 
-            className="flex-1 gap-2" 
-            onClick={handleClear}
-            disabled={!hasActiveFilters}
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </Button>
-          <Button 
-            className="flex-1 gap-2" 
-            onClick={handleSearch}
-            disabled={selectedStatuses.length === 0}
-          >
-            <Search className="h-4 w-4" />
-            Apply
-          </Button>
+        {/* Power Range Slider */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 block">
+            Power Range
+          </label>
+          <div className="px-1">
+            <Slider
+              value={powerRange}
+              onValueChange={(val) => setPowerRange(val as [number, number])}
+              min={POWER_MIN}
+              max={POWER_MAX}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between items-center text-xs mt-2">
+              <span className="text-muted-foreground">{POWER_MIN} kW</span>
+              <span className="flex items-center gap-1 text-primary font-medium">
+                <Zap className="h-3 w-3" />
+                {powerRange[0]} - {powerRange[1]} kW
+              </span>
+              <span className="text-muted-foreground">{POWER_MAX} kW</span>
+            </div>
+          </div>
+        </div>
+
+        {/* kWh Price - Coming soon */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <DollarSign className="h-3 w-3" />
+            Max Price (€/kWh)
+            <Badge variant="outline" className="text-[10px] py-0">Soon</Badge>
+          </label>
+          <Select value={maxPrice} onValueChange={setMaxPrice} disabled>
+            <SelectTrigger className="w-full h-9 text-sm opacity-50">
+              <SelectValue placeholder="Any price" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0.25">≤ €0.25/kWh</SelectItem>
+              <SelectItem value="0.35">≤ €0.35/kWh</SelectItem>
+              <SelectItem value="0.45">≤ €0.45/kWh</SelectItem>
+              <SelectItem value="0.55">≤ €0.55/kWh</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Connector Type - Coming soon */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Plug className="h-3 w-3" />
+            Connector Type
+            <Badge variant="outline" className="text-[10px] py-0">Soon</Badge>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {CONNECTOR_TYPES.map((type) => (
+              <button
+                key={type.id}
+                disabled
+                className="px-3 py-1.5 rounded-full text-xs font-medium bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Available Within - Simplified */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Clock className="h-3 w-3" />
+            Available Within
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {TIME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setSelectedTime(selectedTime === option.value ? "" : option.value)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+                  selectedTime === option.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {selectedTime && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Show chargers becoming available within {selectedTime === "60" ? "1 hour" : selectedTime === "120" ? "2 hours" : `${selectedTime} minutes`}
+            </p>
+          )}
         </div>
       </div>
-    </TooltipProvider>
+
+      {/* Action Buttons */}
+      <div className={cn(
+        "flex gap-2",
+        isMobile ? "pt-4 border-t border-border" : "p-4 pt-0"
+      )}>
+        <Button 
+          variant="outline" 
+          size={isMobile ? "default" : "sm"}
+          className="flex-1 gap-1.5" 
+          onClick={handleClear}
+          disabled={!hasActiveFilters}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Reset
+        </Button>
+        <Button 
+          size={isMobile ? "default" : "sm"}
+          className="flex-1 gap-1.5" 
+          onClick={handleSearch}
+          disabled={selectedStatuses.length === 0}
+        >
+          <Search className="h-3.5 w-3.5" />
+          Apply Filters
+        </Button>
+      </div>
+    </div>
   );
 }
